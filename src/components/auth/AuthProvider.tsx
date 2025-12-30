@@ -5,7 +5,7 @@ import type { UserProfile } from '@/lib/types';
 import type { User, Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/components/ui/toaster';
 import { Loader2 } from 'lucide-react';
@@ -34,7 +34,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (services) {
           setFirebaseServices(services);
           const { auth, db } = services;
-          const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setLoading(true);
             if (user) {
               setUser(user);
               const userRef = doc(db, 'users', user.uid);
@@ -42,25 +43,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 if (docSnap.exists()) {
                   setUserProfile(docSnap.data() as UserProfile);
                 } else {
-                  const newUserProfile: UserProfile = {
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName,
-                    photoURL: user.photoURL,
-                    subscriptionTier: 'free',
-                  };
-                   setDoc(userRef, newUserProfile)
-                    .then(() => setUserProfile(newUserProfile))
-                    .catch((error) => {
-                        console.error("Error creating user profile:", error);
-                        toast({
-                          variant: 'destructive',
-                          title: 'Erro ao criar perfil',
-                          description: `Ocorreu um erro: ${error.message}`
-                        });
-                    });
+                  // Profile is created in AuthForm now, so we just set loading to false.
+                  setUserProfile(null);
                 }
-                 setLoading(false);
+                setLoading(false);
               }, (error) => {
                 console.error("Error listening to user profile:", error);
                 toast({
@@ -103,8 +89,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       db: firebaseServices.db,
     } : undefined), [user, userProfile, loading, firebaseServices]);
 
-  // We must wait for firebaseServices to be initialized before rendering children.
-  if (loading || !value) {
+  if (!value) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

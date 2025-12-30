@@ -9,8 +9,8 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
-  type Auth,
 } from "firebase/auth";
+import { doc, setDoc } from 'firebase/firestore';
 
 import { useToast } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { useAuth } from './AuthProvider';
+import type { UserProfile } from '@/lib/types';
 
 
 const formSchema = z.object({
@@ -41,7 +42,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
-  const { auth } = useAuth();
+  const { auth, db } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +69,9 @@ export function AuthForm() {
             case 'auth/invalid-credential':
                  description = "Credenciais inválidas. Verifique seu email e senha.";
                  break;
+            case 'auth/api-key-not-valid':
+                description = "Chave de API do Firebase inválida. Verifique a configuração.";
+                break;
             default:
                 description = `Erro: ${error.message}`;
         }
@@ -80,6 +84,7 @@ export function AuthForm() {
   }
 
   const handleLogin = async (values: FormValues) => {
+    if (!auth) return;
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -92,26 +97,50 @@ export function AuthForm() {
   };
 
   const handleRegister = async (values: FormValues) => {
+    if (!auth || !db) return;
     setLoading(true);
     try {
-      // The user profile will be created by the onAuthStateChanged listener in AuthProvider
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Create user profile document
+      const newUserProfile: UserProfile = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        subscriptionTier: 'free',
+      };
+      await setDoc(doc(db, "users", user.uid), newUserProfile);
+      
       toast({ title: "Cadastro realizado com sucesso!", description: "Você será redirecionado para completar seu perfil." });
     } catch (error: any) {
-      handleAuthError(error, 'cadastro');
+      handleAuthError(error, 'register');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth || !db) return;
     setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      // Profile creation for Google Sign-In is handled by the AuthProvider's onAuthStateChanged listener
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+       // Create user profile document for Google Sign-In if it doesn't exist
+       // Note: The onAuthStateChanged in AuthProvider will handle fetching it, but creation is safer here.
+       const newUserProfile: UserProfile = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        subscriptionTier: 'free',
+      };
+      await setDoc(doc(db, "users", user.uid), newUserProfile, { merge: true });
+
       toast({ title: "Login com Google bem-sucedido!" });
-    } catch (error: any) => {
+    } catch (error: any) {
       handleAuthError(error, 'login com Google');
     } finally {
       setLoadingGoogle(false);
