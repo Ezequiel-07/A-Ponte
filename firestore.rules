@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the user is the owner of a document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Helper function to get a document's data
+    function getDoc(path) {
+      return get(path).data;
+    }
+
+    // User profiles can only be read/written by their owner
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // Company profiles are public to read, but only the owner can create/update/delete
+    match /companies/{companyId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && getDoc(resource.path).ownerId == request.auth.uid;
+    }
+
+    // Connections can only be read or written by users belonging to one of the involved companies
+    match /connections/{connectionId} {
+      allow read, write: if isSignedIn() && 
+                          (
+                            getDoc(/databases/$(database)/documents/users/$(request.auth.uid)).companyId == resource.data.requesterCompanyId ||
+                            getDoc(/databases/$(database)/documents/users/$(request.auth.uid)).companyId == resource.data.targetCompanyId
+                          );
+    }
+
+    // Interactions can only be managed by the user who created them
+    match /interactions/{interactionId} {
+      allow read, create, write, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

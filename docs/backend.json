@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user-specific information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user's unique ID." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "photoURL": { "type": "string", "format": "uri", "description": "URL of the user's profile picture." },
+        "companyId": { "type":_code
+"string", "description": "Reference to the company the user represents." },
+        "subscriptionTier": { "type": "string", "enum": ["free", "professional"] },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "searchRadiusKm": { "type": "number" },
+            "businessMode": { "type": "string", "enum": ["buy", "sell"] }
+          }
+        }
+      },
+      "required": ["uid", "email", "subscriptionTier"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Detailed profile of a company.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cnpj": { "type": "string" },
+        "razaoSocial": { "type": "string" },
+        "nomeFantasia": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "cnaePrincipal": {
+          "type": "object",
+          "properties": {
+            "code": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        },
+        "endereco": {
+          "type": "object",
+          "properties": {
+            "cidade": { "type": "string" },
+            "uf": { "type": "string" }
+          }
+        },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "geohash": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["id", "cnpj", "razaoSocial", "cnaePrincipal", "endereco", "latitude", "longitude", "geohash", "ownerId"]
+    },
+    "Connection": {
+      "title": "Connection",
+      "description": "Represents a connection state between two companies.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "requesterCompanyId": { "type": "string" },
+        "targetCompanyId": { "type": "string" },
+        "status": { "type": "string", "enum": ["requested", "connected", "dismissed"] }
+      },
+      "required": ["id", "requesterCompanyId", "targetCompanyId", "status"]
+    },
+    "Interaction": {
+      "title": "Interaction",
+      "description": "Logs user interactions with company recommendations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "companyId": { "type": "string" },
+        "action": { "type": "string", "enum": ["connection_request", "dismiss"] }
+      },
+      "required": ["id", "userId", "companyId", "action"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores public information about a user."
+    },
+    "/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/Company" },
+      "description": "Stores detailed profiles of companies."
+    },
+    "/connections/{connectionId}": {
+      "schema": { "$ref": "#/entities/Connection" },
+      "description": "Tracks the status of connection requests between companies."
+    },
+    "/interactions/{interactionId}": {
+      "schema": { "$ref": "#/entities/Interaction" },
+      "description": "Logs user actions like connection requests or dismissals."
+    }
+  }
+}
