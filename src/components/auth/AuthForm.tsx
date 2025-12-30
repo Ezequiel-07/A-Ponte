@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  type Auth,
 } from "firebase/auth";
 
 import { useToast } from "@/components/ui/toaster";
@@ -25,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
@@ -34,11 +34,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function AuthForm() {
+interface AuthFormProps {
+    auth: Auth;
+}
+
+export function AuthForm({ auth }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
-  const { auth } = useAuth(); // Obter 'auth' do contexto
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

@@ -7,9 +7,10 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import type { Auth } from "firebase/auth";
 
 export default function AuthPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, auth } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function AuthPage() {
             <Logo />
         </Link>
        </div>
-      <AuthForm />
+      <AuthForm auth={auth as Auth} />
     </div>
   );
 }
