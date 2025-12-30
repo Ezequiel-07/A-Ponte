@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { useToast } from '@/lib/hooks/use-toast';
+import { useToast } from '@/components/ui/toaster';
 import { UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
@@ -50,7 +50,6 @@ export function ProfileForm({ userProfile }: ProfileFormProps) {
         description: 'Suas novas preferências de busca foram salvas com sucesso.',
       });
     } catch (error) {
-      console.error('Error updating profile:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao salvar',

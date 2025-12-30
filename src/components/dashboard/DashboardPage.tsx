@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { useToast } from '@/lib/hooks/use-toast';
-import { Company, Connection, UserProfile } from '@/lib/types';
+import { useToast } from '@/components/ui/toaster';
+import { Company, Connection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Search, Sparkles } from 'lucide-react';

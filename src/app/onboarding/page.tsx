@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/lib/hooks/use-toast';
+import { useToast } from '@/components/ui/toaster';
 import { geocodeAddress, generateGeohash } from '@/lib/geocoding';
 import { db } from '@/lib/firebase/client';
 import type { CompanyProfile, Company } from '@/lib/types';
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
 
         const batch = writeBatch(db);
         batch.set(companyRef, newCompanyData);
-        batch.update(userRef, { companyId: companyId, updatedAt: serverTimestamp() });
+        batch.update(userRef, { companyId: companyId });
 
         await batch.commit();
         

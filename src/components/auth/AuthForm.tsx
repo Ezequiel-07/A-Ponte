@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useRouter } from 'next/navigation';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -13,7 +12,7 @@ import {
 } from "firebase/auth";
 
 import { auth } from '@/lib/firebase/client';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -27,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Separator } from '../ui/separator';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
@@ -39,7 +37,6 @@ type FormValues = z.infer<typeof formSchema>;
 export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -51,11 +48,10 @@ export function AuthForm() {
   });
   
   const handleAuthError = (error: any, context: 'login' | 'register' | 'google') => {
-    console.error(`Error during ${context}:`, error);
     let description = "Ocorreu um erro inesperado. Tente novamente.";
     if (error.code === 'auth/email-already-in-use') {
       description = "Este email já está em uso. Tente fazer login.";
-    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
       description = "Email ou senha incorretos. Por favor, tente novamente.";
     } else if (error.code === 'auth/popup-closed-by-user') {
       description = "O popup de login foi fechado. Tente novamente.";
@@ -73,7 +69,6 @@ export function AuthForm() {
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({ title: "Login bem-sucedido!", description: "Redirecionando para a plataforma..." });
-      // Onboarding check will be handled by the AuthGuard or a similar component
     } catch (error: any) {
       handleAuthError(error, 'login');
     } finally {
@@ -86,7 +81,6 @@ export function AuthForm() {
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
       toast({ title: "Cadastro realizado com sucesso!", description: "Você será redirecionado para completar seu perfil." });
-      // The redirection will be handled by the AuthProvider logic
     } catch (error: any) {
       handleAuthError(error, 'register');
     } finally {
@@ -132,7 +126,7 @@ export function AuthForm() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Ou continue com</span>
+                  <span className="bg-card px-2 text-muted-foreground">Ou continue com</span>
                 </div>
               </div>
             </div>
@@ -186,7 +180,7 @@ export function AuthForm() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Ou cadastre com email</span>
+                  <span className="bg-card px-2 text-muted-foreground">Ou cadastre com email</span>
                 </div>
               </div>
             </div>
