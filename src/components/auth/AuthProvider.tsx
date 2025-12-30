@@ -6,7 +6,8 @@ import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { toast } from '@/components/ui/toaster';
+import { useToast } from '@/components/ui/toaster';
+import { Loader2 } from 'lucide-react';
 
 type AuthContextType = {
   user: User | null;
@@ -20,68 +21,78 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Adicionado para garantir que o firebase seja inicializado antes de usar o `auth`
     initializeFirebaseClient().then(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setFirebaseInitialized(true);
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
         setLoading(true);
         if (user) {
-            setUser(user);
-            const userRef = doc(db, 'users', user.uid);
+          setUser(user);
+          const userRef = doc(db, 'users', user.uid);
 
-            const unsubProfile = onSnapshot(userRef, (docSnap) => {
+          const unsubProfile = onSnapshot(userRef, (docSnap) => {
             if (docSnap.exists()) {
-                setUserProfile(docSnap.data() as UserProfile);
-                setLoading(false);
+              setUserProfile(docSnap.data() as UserProfile);
+              setLoading(false);
             } else {
-                const newUserProfile: UserProfile = {
+              const newUserProfile: UserProfile = {
                 uid: user.uid,
                 email: user.email,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 subscriptionTier: 'free',
-                };
-                setDoc(userRef, newUserProfile)
+              };
+              setDoc(userRef, newUserProfile)
                 .then(() => {
-                    setUserProfile(newUserProfile);
-                    setLoading(false);
+                  setUserProfile(newUserProfile);
+                  setLoading(false);
                 })
                 .catch((error) => {
-                    console.error("Error creating user profile:", error);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Erro ao criar perfil',
-                        description: `Ocorreu um erro: ${error.message}`
-                    });
-                    setLoading(false);
+                  console.error("Error creating user profile:", error);
+                  toast({
+                    variant: 'destructive',
+                    title: 'Erro ao criar perfil',
+                    description: `Ocorreu um erro: ${error.message}`
+                  });
+                  setLoading(false);
                 });
             }
-            }, (error) => {
-                console.error("Error listening to user profile:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Erro de Sincronização',
-                    description: `Não foi possível sincronizar seu perfil: ${error.message}`
-                });
-                setLoading(false);
+          }, (error) => {
+            console.error("Error listening to user profile:", error);
+            toast({
+              variant: 'destructive',
+              title: 'Erro de Sincronização',
+              description: `Não foi possível sincronizar seu perfil: ${error.message}`
             });
-
-            return () => {
-            unsubProfile();
-            };
-        } else {
-            setUser(null);
-            setUserProfile(null);
             setLoading(false);
-        }
-        });
+          });
 
-        return () => unsubscribe();
+          return () => {
+            unsubProfile();
+          };
+        } else {
+          setUser(null);
+          setUserProfile(null);
+          setLoading(false);
+        }
+      });
+
+      return () => unsubscribe();
     });
-  }, []);
+  }, [toast]);
   
   const value = useMemo(() => ({ user, userProfile, loading }), [user, userProfile, loading]);
+
+  if (!firebaseInitialized) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
