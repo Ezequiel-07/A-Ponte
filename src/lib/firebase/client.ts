@@ -1,16 +1,16 @@
-import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
-let app;
-let auth: Auth;
-let db: Firestore;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
 
 let firebaseInitialized = false;
 
-async function initializeFirebaseClient() {
-    if (firebaseInitialized) {
-        return;
+export async function initializeFirebaseClient(): Promise<{auth: Auth, db: Firestore} | null> {
+    if (firebaseInitialized && app && auth && db) {
+        return { auth, db };
     }
 
     if (getApps().length) {
@@ -27,17 +27,23 @@ async function initializeFirebaseClient() {
                 app = initializeApp(firebaseConfig);
             } else {
                 console.error("Firebase config is missing or invalid.");
-                return;
+                return null;
             }
         } catch(error) {
             console.error("Error initializing Firebase from config:", error);
-            return;
+            return null;
         }
     }
+    
     auth = getAuth(app);
     db = getFirestore(app);
     firebaseInitialized = true;
+    
+    return { auth, db };
 }
 
-
-export { app, db, auth, initializeFirebaseClient };
+// Export a getter function for db and auth to ensure they are initialized.
+// Note: These direct exports might still be problematic if imported at the top level
+// of modules that execute before initializeFirebaseClient is complete.
+// Prefer using the context-provided instances.
+export { db, auth };

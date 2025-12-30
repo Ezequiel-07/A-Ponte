@@ -11,7 +11,6 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 
-import { auth } from '@/lib/firebase/client';
 import { useToast } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { useAuth } from './AuthProvider';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
@@ -38,6 +38,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
+  const { auth } = useAuth(); // Obter 'auth' do contexto
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -57,6 +58,7 @@ export function AuthForm() {
   }
 
   const handleLogin = async (values: FormValues) => {
+    if (!auth) return;
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -69,6 +71,7 @@ export function AuthForm() {
   };
 
   const handleRegister = async (values: FormValues) => {
+    if (!auth) return;
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
@@ -81,6 +84,7 @@ export function AuthForm() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth) return;
     setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
     try {
