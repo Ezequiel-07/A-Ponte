@@ -11,6 +11,7 @@ import {
   signInWithRedirect,
 } from "firebase/auth";
 import { doc, setDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 import { useToast } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export function AuthForm() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
   const { auth, db } = useAuth();
+  const router = useRouter();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -122,6 +124,7 @@ export function AuthForm() {
       await setDoc(doc(db, "users", user.uid), newUserProfile);
       
       toast({ title: "Cadastro realizado com sucesso!", description: "Você será redirecionado para completar seu perfil." });
+      router.push('/onboarding');
     } catch (error: any) {
       handleAuthError(error, 'register');
     } finally {
