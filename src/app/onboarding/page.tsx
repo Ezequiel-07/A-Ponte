@@ -91,7 +91,7 @@ export default function OnboardingPage() {
 
       setCompanyData(data);
       toast({ title: 'Empresa Encontrada!', description: data.razao_social });
-    } catch (err) => {
+    } catch (err) {
       setError('Não foi possível encontrar dados para este CNPJ. Verifique o número e tente novamente.');
       toast({ variant: 'destructive', title: 'Erro ao buscar CNPJ' });
     } finally {
