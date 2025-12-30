@@ -10,10 +10,27 @@ import { RecommendationsList } from './RecommendationsList';
 import { RationaleSheet } from './RationaleSheet';
 import { useAuth } from '../auth/AuthProvider';
 import { findConnections } from '@/lib/data/connections';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+// Helper function to convert Firestore Timestamps to ISO strings
+const convertTimestamps = (obj: any): any => {
+    if (obj instanceof Timestamp) {
+        return obj.toDate().toISOString();
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(convertTimestamps);
+    }
+    if (obj !== null && typeof obj === 'object') {
+        return Object.keys(obj).reduce((acc, key) => {
+            acc[key] = convertTimestamps(obj[key]);
+            return acc;
+        }, {} as { [key: string]: any });
+    }
+    return obj;
+};
 
 export default function DashboardPage() {
   const { user, userProfile, db } = useAuth();
@@ -45,8 +62,11 @@ export default function DashboardPage() {
         }
         
         const userCompany = companySnap.data() as Company;
+        
+        // Convert Firestore Timestamps to plain objects before passing to server action
+        const plainUserCompany = convertTimestamps(userCompany);
 
-        const results = await findConnections(user.uid, userProfile, userCompany, db);
+        const results = await findConnections(user.uid, userProfile, plainUserCompany);
         
         // Sort results by compatibilityScore
         results.sort((a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0));

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, writeBatch } from 'firebase/firestore';
 import { Loader2, Building, AlertCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -91,7 +91,7 @@ export default function OnboardingPage() {
 
       setCompanyData(data);
       toast({ title: 'Empresa Encontrada!', description: data.razao_social });
-    } catch (err) {
+    } catch (err) => {
       setError('Não foi possível encontrar dados para este CNPJ. Verifique o número e tente novamente.');
       toast({ variant: 'destructive', title: 'Erro ao buscar CNPJ' });
     } finally {
@@ -149,8 +149,8 @@ export default function OnboardingPage() {
             tagsOperacionais: [],
             fotos: [],
             ownerId: user.uid,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
         };
 
         const userRef = doc(db, 'users', user.uid);

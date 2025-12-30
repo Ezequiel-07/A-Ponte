@@ -1,4 +1,4 @@
-import { FieldValue } from 'firebase/firestore';
+import { FieldValue, Timestamp } from 'firebase/firestore';
 
 // --- Perfis e Autenticação ---
 
@@ -48,8 +48,8 @@ export interface Company {
   tagsOperacionais: string[];
   fotos: string[]; // URLs das imagens
   ownerId: string; // UID do usuário que criou a empresa
-  createdAt: FieldValue;
-  updatedAt: FieldValue;
+  createdAt: FieldValue | Timestamp | Date | string;
+  updatedAt: FieldValue | Timestamp | Date | string;
 }
 
 
@@ -63,8 +63,8 @@ export interface Connection {
   status: 'requested' | 'connected' | 'dismissed';
   compatibilityScore?: number; // Opcional, pode ser calculado pela IA
   compatibilityReason?: string; // Opcional, justificativa da IA
-  createdAt: FieldValue;
-  updatedAt: FieldValue;
+  createdAt: FieldValue | Date;
+  updatedAt: FieldValue | Date;
 }
 
 export interface Interaction {
