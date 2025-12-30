@@ -1,7 +1,7 @@
 "use client";
 
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
-import { getAuth, type Auth, onAuthStateChanged, type User } from "firebase/auth";
+import { getAuth, type Auth, onAuthStateChanged, type User, getRedirectResult } from "firebase/auth";
 import { getFirestore, type Firestore, doc, onSnapshot, setDoc } from "firebase/firestore";
 import type { UserProfile } from '@/lib/types';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
@@ -64,6 +64,38 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (firebaseServices) {
         const { auth, db } = firebaseServices;
+
+        // Handle redirect result from Google Sign-In
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    const user = result.user;
+                    const userRef = doc(db, 'users', user.uid);
+                    
+                    const newUserProfile: UserProfile = {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        subscriptionTier: 'free',
+                    };
+                    
+                    // Use setDoc with merge: true to create or update the profile
+                    setDoc(userRef, newUserProfile, { merge: true }).then(() => {
+                        toast({ title: "Login com Google bem-sucedido!" });
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("Error getting redirect result:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Erro no Login com Google',
+                    description: error.message,
+                });
+            });
+
+
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setLoading(true);
             if (user) {

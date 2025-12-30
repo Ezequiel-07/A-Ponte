@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
 } from "firebase/auth";
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -72,6 +72,12 @@ export function AuthForm() {
             case 'auth/api-key-not-valid':
                 description = `Chave de API do Firebase inválida. Verifique a configuração. Detalhe: ${error.message}`;
                 break;
+            case 'auth/popup-blocked':
+                description = 'O pop-up de autenticação foi bloqueado pelo navegador. Por favor, habilite os pop-ups para este site.';
+                break;
+            case 'auth/unauthorized-domain':
+                description = 'Este domínio não está autorizado para operações de autenticação. Verifique as configurações do Firebase.';
+                break;
             default:
                 description = `Erro: ${error.message}`;
         }
@@ -124,27 +130,15 @@ export function AuthForm() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !db) return;
+    if (!auth) return;
     setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-       // Create or merge user profile document for Google Sign-In
-       const newUserProfile: UserProfile = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        subscriptionTier: 'free',
-      };
-      await setDoc(doc(db, "users", user.uid), newUserProfile, { merge: true });
-
-      toast({ title: "Login com Google bem-sucedido!" });
+      // Use signInWithRedirect instead of signInWithPopup
+      await signInWithRedirect(auth, provider);
     } catch (error: any) {
       handleAuthError(error, 'login com Google');
-    } finally {
-      setLoadingGoogle(false);
+      setLoadingGoogle(false); // Only set to false on error, as success will redirect
     }
   };
 
