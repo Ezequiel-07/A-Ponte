@@ -4,7 +4,7 @@ import { auth, db } from '@/lib/firebase/client';
 import type { UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 
 type AuthContextType = {
@@ -29,19 +29,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         
         const unsubProfile = onSnapshot(userRef, async (docSnap) => {
             if (docSnap.exists()) {
-                const profileData = docSnap.data() as UserProfile;
-                setUserProfile(profileData);
+                setUserProfile(docSnap.data() as UserProfile);
             } else {
-                // Create user profile if it doesn't exist
-                const newUserProfile: UserProfile = {
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName,
-                    photoURL: user.photoURL,
-                    subscriptionTier: 'free', // Default to free tier
-                };
-                await setDoc(userRef, newUserProfile, { merge: true });
-                setUserProfile(newUserProfile);
+                // To prevent race conditions, check one more time if the doc exists
+                const userDoc = await getDoc(userRef);
+                if (!userDoc.exists()) {
+                    const newUserProfile: UserProfile = {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        subscriptionTier: 'free',
+                    };
+                    await setDoc(userRef, newUserProfile);
+                    setUserProfile(newUserProfile);
+                } else {
+                    setUserProfile(userDoc.data() as UserProfile);
+                }
             }
             setLoading(false);
         });
