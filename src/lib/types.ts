@@ -60,6 +60,7 @@ export interface Connection {
   id: string; // ID do documento
   requesterCompanyId: string;
   targetCompanyId: string;
+  targetCompany?: Company; // Embed company data for recommendations
   status: 'requested' | 'connected' | 'dismissed';
   compatibilityScore?: number; // Opcional, pode ser calculado pela IA
   compatibilityReason?: string; // Opcional, justificativa da IA

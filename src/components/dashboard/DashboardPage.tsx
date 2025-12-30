@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { explainRecommendation } from '@/ai/flows';
-import { Company, PartnershipRecommendation, UserProfile } from '@/lib/types';
+import { Company, Connection, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Search, Sparkles } from 'lucide-react';
@@ -12,18 +11,15 @@ import { RationaleSheet } from './RationaleSheet';
 import { useAuth } from '../auth/AuthProvider';
 import { findConnections } from '@/lib/connections';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, userProfile } = useAuth();
-  const [recommendations, setRecommendations] = useState<Company[]>([]);
+  const [recommendations, setRecommendations] = useState<Connection[]>([]);
   const [isGeneratingRecs, setIsGeneratingRecs] = useState(false);
-  const [rationale, setRationale] = useState<string | null>(null);
-  const [isGeneratingRationale, setIsGeneratingRationale] = useState(false);
-  const [selectedForRationale, setSelectedForRationale] = useState<Company | null>(null);
-  const [targetCompany, setTargetCompany] = useState<Company | null>(null);
+  const [selectedForRationale, setSelectedForRationale] = useState<Connection | null>(null);
 
   const { toast } = useToast();
 
@@ -49,7 +45,6 @@ export default function DashboardPage() {
         }
         
         const userCompany = companySnap.data() as Company;
-        setTargetCompany(userCompany);
 
         const results = await findConnections(user.uid, userProfile, userCompany);
         setRecommendations(results);
@@ -67,30 +62,9 @@ export default function DashboardPage() {
     }
   };
 
-    const handleExplain = async (recommendation: Company) => {
-        if (!targetCompany) return;
-        setSelectedForRationale(recommendation);
-        setIsGeneratingRationale(true);
-        setRationale(null);
-        try {
-            const result = await explainRecommendation({
-                companyProfile1: JSON.stringify(targetCompany),
-                companyProfile2: JSON.stringify(recommendation),
-                objectiveCriteria: `Localização, CNAE (${recommendation.cnaePrincipal.description}), e perfil operacional.`
-            });
-            setRationale(result.rationale);
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao gerar explicação',
-                description: 'A IA não conseguiu processar a solicitação. Tente novamente mais tarde.',
-            });
-             setIsGeneratingRationale(false);
-             setSelectedForRationale(null);
-        } finally {
-             setIsGeneratingRationale(false);
-        }
-    };
+  const handleExplain = (recommendation: Connection) => {
+    setSelectedForRationale(recommendation);
+  };
 
 
   return (
@@ -140,12 +114,9 @@ export default function DashboardPage() {
         onOpenChange={(open) => {
             if(!open) {
                 setSelectedForRationale(null);
-                setRationale(null);
             }
         }}
         recommendation={selectedForRationale}
-        rationale={rationale}
-        isLoading={isGeneratingRationale}
       />
     </div>
   );

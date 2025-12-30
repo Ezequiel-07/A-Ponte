@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview Explains the rationale behind a partnership recommendation.
+ * @fileOverview Analyzes partnership compatibility and explains the rationale.
  *
- * - explainRecommendation - A function that takes partnership details and explains the AI's reasoning.
+ * - explainRecommendation - A function that takes two company profiles and returns a compatibility score and rationale.
  * - ExplainRecommendationInput - The input type for the explainRecommendation function.
  * - ExplainRecommendationOutput - The return type for the explainRecommendation function.
  */
@@ -12,14 +12,14 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const ExplainRecommendationInputSchema = z.object({
-  companyProfile1: z.string().describe('Profile details of the first company.'),
-  companyProfile2: z.string().describe('Profile details of the second company.'),
-  objectiveCriteria: z.string().describe('Objective criteria for partnership consideration (location, CNAE, operational profile).'),
+  userCompanyProfile: z.string().describe('Profile details of the user\'s company.'),
+  candidateCompanyProfile: z.string().describe('Profile details of the candidate company.'),
 });
 export type ExplainRecommendationInput = z.infer<typeof ExplainRecommendationInputSchema>;
 
 const ExplainRecommendationOutputSchema = z.object({
-  rationale: z.string().describe('A human-readable explanation of the AI reasoning behind the partnership recommendation.'),
+  compatibilityScore: z.number().describe('A compatibility score between 0 and 100.'),
+  compatibilityReason: z.string().describe('A short, objective, and professional explanation justifying the recommendation.'),
 });
 export type ExplainRecommendationOutput = z.infer<typeof ExplainRecommendationOutputSchema>;
 
@@ -31,13 +31,22 @@ const prompt = ai.definePrompt({
   name: 'explainRecommendationPrompt',
   input: {schema: ExplainRecommendationInputSchema},
   output: {schema: ExplainRecommendationOutputSchema},
-  prompt: `You are a business analyst AI explaining partnership recommendations between two companies.
+  prompt: `You are a B2B Business Analyst.
 
-  Based on the provided company profiles and objective criteria, clearly explain the rationale behind recommending a partnership. Justify each suggestion with professional context.
+  Analyze the compatibility between the two companies below, considering their primary business activity (CNAE), operational complementarity, location, and business profile.
 
-  Company Profile 1: {{{companyProfile1}}}
-  Company Profile 2: {{{companyProfile2}}}
-  Objective Criteria: {{{objectiveCriteria}}}
+  Your tasks are:
+  1.  Assign a compatibility score from 0 to 100.
+  2.  Generate a short, objective, and institutional explanation justifying the recommendation.
+
+  RULES:
+  - Use professional language.
+  - No informal terms.
+  - No emojis.
+  - No exaggerated marketing.
+
+  User Company Profile: {{{userCompanyProfile}}}
+  Candidate Company Profile: {{{candidateCompanyProfile}}}
   `,
 });
 

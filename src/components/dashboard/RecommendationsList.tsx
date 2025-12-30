@@ -1,13 +1,13 @@
 'use client';
 
-import type { Company } from '@/lib/types';
+import type { Connection } from '@/lib/types';
 import { RecommendationCard } from './RecommendationCard';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface RecommendationsListProps {
-  recommendations: Company[];
+  recommendations: Connection[];
   isLoading: boolean;
-  onExplain: (recommendation: Company) => void;
+  onExplain: (recommendation: Connection) => void;
 }
 
 function RecommendationSkeleton() {

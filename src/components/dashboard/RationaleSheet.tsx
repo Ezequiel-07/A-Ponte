@@ -1,6 +1,6 @@
 'use client';
 
-import type { Company } from '@/lib/types';
+import type { Connection } from '@/lib/types';
 import {
   Sheet,
   SheetContent,
@@ -8,23 +8,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Loader2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface RationaleSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  recommendation: Company | null;
-  rationale: string | null;
-  isLoading: boolean;
+  recommendation: Connection | null;
 }
 
 export function RationaleSheet({
   isOpen,
   onOpenChange,
   recommendation,
-  rationale,
-  isLoading,
 }: RationaleSheetProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -36,21 +32,15 @@ export function RationaleSheet({
           </SheetTitle>
           <SheetDescription>
             Análise da sinergia entre sua empresa e{' '}
-            <strong>{recommendation?.nomeFantasia || recommendation?.razaoSocial}</strong>.
+            <strong>{recommendation?.targetCompany?.nomeFantasia || recommendation?.targetCompany?.razaoSocial}</strong>.
           </SheetDescription>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-12rem)] mt-4 pr-4">
             <div className="prose prose-sm dark:prose-invert max-w-none">
-                {isLoading && (
-                    <div className="flex flex-col items-center justify-center gap-4 py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Analisando sinergias...</p>
-                    </div>
-                )}
-                {rationale && !isLoading && (
+                {recommendation?.compatibilityReason && (
                     <div
                         className="space-y-4 text-foreground"
-                        dangerouslySetInnerHTML={{ __html: rationale.replace(/\n/g, '<br />') }}
+                        dangerouslySetInnerHTML={{ __html: recommendation.compatibilityReason.replace(/\n/g, '<br />') }}
                     />
                 )}
             </div>
