@@ -2,19 +2,30 @@ import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/a
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const firebaseConfig: FirebaseOptions = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+let app, auth, db;
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
+async function initializeFirebaseClient() {
+    if (getApps().length) {
+        app = getApp();
+    } else {
+        const response = await fetch('/api/firebase-config');
+        const firebaseConfig: FirebaseOptions = await response.json();
+        
+        if (firebaseConfig.apiKey) {
+            app = initializeApp(firebaseConfig);
+        } else {
+            console.error("Firebase config is not loaded yet.");
+            // You might want to have a fallback or retry mechanism here
+            return;
+        }
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+}
 
+// Immediately call the async function.
+// The rest of the app will need to handle the async nature of this.
+// For now, we assume components will wait or re-render once `auth` and `db` are available.
+initializeFirebaseClient();
 
 export { app, db, auth };
