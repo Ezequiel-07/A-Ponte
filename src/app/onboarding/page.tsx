@@ -157,7 +157,7 @@ export default function OnboardingPage() {
 
         const batch = writeBatch(db);
         batch.set(companyRef, newCompanyData);
-        batch.update(userRef, { companyId: companyId });
+        batch.set(userRef, { companyId: companyId }, { merge: true });
 
         await batch.commit();
         
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
 
     } catch (err: any) {
         setError(err.message || 'Ocorreu um erro ao salvar os dados. Tente novamente.');
-        toast({ variant: 'destructive', title: 'Erro ao Confirmar Empresa' });
+        toast({ variant: 'destructive', title: 'Erro ao Confirmar Empresa', description: err.message });
         setIsLoading(false);
     }
   }
