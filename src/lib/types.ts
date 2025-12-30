@@ -11,7 +11,7 @@ export interface UserProfile {
   subscriptionTier: 'free' | 'professional';
   preferences?: {
     searchRadiusKm: number;
-    businessMode: 'buy' | 'sell' | 'both'; // Modo de interesse principal
+    businessMode: 'buy' | 'sell'; // Modo de interesse principal
   };
   createdAt: FieldValue;
   updatedAt: FieldValue;

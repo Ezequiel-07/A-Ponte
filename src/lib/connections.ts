@@ -7,38 +7,85 @@ import { db } from '@/lib/firebase/client';
 import type { Company, Connection, Interaction, UserProfile } from './types';
 import { explainRecommendation } from '@/ai/flows';
 
-// Mapeia um setor (prefixo do CNAE) para outros setores compatíveis
+// Mapeia uma seção do CNAE (letra) para outras seções compatíveis.
+// Chave: Seção do CNAE da empresa do usuário.
+// Valor: Array de seções do CNAE de empresas candidatas.
 const CONNECTION_MATRIX: Record<string, string[]> = {
-    'C': ['G', 'H', 'M'], // Indústria -> Comércio, Transporte, Serviços Profissionais
-    'F': ['C', 'G', 'L'], // Construção -> Indústria, Comércio, Imobiliário
-    'G': ['C', 'H', 'I'], // Comércio -> Indústria, Transporte, Alojamento/Alimentação
-    'H': ['C', 'G', 'J'], // Transporte -> Indústria, Comércio, Informação/Comunicação
-    'J': ['M', 'N', 'P'], // TI -> Serv. Profissionais, Administrativos, Educação
-    'K': ['M', 'L', 'K'], // Financeiro -> Serv. Profissionais, Imobiliário, Financeiro
-    'L': ['F', 'K', 'N'], // Imobiliário -> Construção, Financeiro, Serv. Administrativos
-    'M': ['J', 'K', 'P'], // Serv. Profissionais -> TI, Financeiro, Educação
+    // Indústrias de Transformação (C) podem FORNECER para:
+    'C_sell': ['G', 'F', 'C'], // Comércio, Construção, Outras Indústrias
+    // Comércio (G) pode COMPRAR de:
+    'G_buy': ['C', 'A', 'B'], // Indústria, Agricultura, Indústrias Extrativas
+
+    // Construção (F) pode FORNECER para:
+    'F_sell': ['L', 'M', 'N'], // Atividades Imobiliárias, Profissionais, Administrativas
+    // Atividades Imobiliárias (L) podem COMPRAR de:
+    'L_buy': ['F', 'M', 'K'], // Construção, Serviços Profissionais, Financeiros
+
+    // Transporte (H) pode FORNECER para:
+    'H_sell': ['C', 'G', 'E'], // Indústria, Comércio, Água/Esgoto
+    // Comércio (G) pode COMPRAR de (transporte):
+    'G_buy_transport': ['H'],
+
+    // TI (J) pode FORNECER para:
+    'J_sell': ['M', 'K', 'Q', 'P'], // Serviços Profissionais, Financeiros, Saúde, Educação
+    // Qualquer setor pode COMPRAR de TI:
+    'all_buy_J': ['J'],
+
+    // Serviços Profissionais (M) podem FORNECER para:
+    'M_sell': ['C', 'F', 'J', 'K', 'L', 'N'], // A maioria dos outros setores
 };
 
 function getCnaeSection(cnaeCode: string): string | null {
     if (!cnaeCode) return null;
     const code = parseInt(cnaeCode.substring(0, 2), 10);
-    if (code >= 1 && code <= 3) return 'A';
-    if (code >= 5 && code <= 9) return 'B';
-    if (code >= 10 && code <= 33) return 'C';
-    if (code >= 35 && code <= 39) return 'E';
-    if (code >= 41 && code <= 43) return 'F';
-    if (code >= 45 && code <= 47) return 'G';
-    if (code >= 49 && code <= 53) return 'H';
-    if (code >= 55 && code <= 56) return 'I';
-    if (code >= 58 && code <= 63) return 'J';
-    if (code >= 64 && code <= 66) return 'K';
-    if (code === 68) return 'L';
-    if (code >= 69 && code <= 75) return 'M';
-    if (code >= 77 && code <= 82) return 'N';
-    if (code === 85) return 'P';
-    if (code >= 86 && code <= 88) return 'Q';
+    if (code >= 1 && code <= 3) return 'A'; // Agricultura, Pecuária, Produção Florestal, Pesca e Aquicultura
+    if (code >= 5 && code <= 9) return 'B'; // Indústrias Extrativas
+    if (code >= 10 && code <= 33) return 'C'; // Indústrias de Transformação
+    if (code === 35) return 'D'; // Eletricidade e Gás
+    if (code >= 36 && code <= 39) return 'E'; // Água, Esgoto, Atividades de Gestão de Resíduos e Descontaminação
+    if (code >= 41 && code <= 43) return 'F'; // Construção
+    if (code >= 45 && code <= 47) return 'G'; // Comércio; Reparação de Veículos Automotores e Motocicletas
+    if (code >= 49 && code <= 53) return 'H'; // Transporte, Armazenagem e Correio
+    if (code >= 55 && code <= 56) return 'I'; // Alojamento e Alimentação
+    if (code >= 58 && code <= 63) return 'J'; // Informação e Comunicação
+    if (code >= 64 && code <= 66) return 'K'; // Atividades Financeiras, de Seguros e Serviços Relacionados
+    if (code === 68) return 'L'; // Atividades Imobiliárias
+    if (code >= 69 && code <= 75) return 'M'; // Atividades Profissionais, Científicas e Técnicas
+    if (code >= 77 && code <= 82) return 'N'; // Atividades Administrativas e Serviços Complementares
+    if (code === 84) return 'O'; // Administração Pública, Defesa e Seguridade Social
+    if (code === 85) return 'P'; // Educação
+    if (code >= 86 && code <= 88) return 'Q'; // Saúde Humana e Serviços Sociais
+    if (code >= 90 && code <= 93) return 'R'; // Artes, Cultura, Esporte e Recreação
+    if (code >= 94 && code <= 96) return 'S'; // Outras Atividades de Serviços
+    if (code === 97) return 'T'; // Serviços Domésticos
     return null;
 }
+
+function getCompatibleCnaeSections(userCnaeSection: string, businessMode: 'buy' | 'sell'): string[] {
+    if (businessMode === 'buy') {
+        // Se quero comprar, busco por setores que FORNECEM o que preciso.
+        // A lógica da matriz é "setor_vende para". Então invertemos a busca.
+        const compatibleSections: string[] = [];
+        for (const key in CONNECTION_MATRIX) {
+            if (CONNECTION_MATRIX[key].includes(userCnaeSection)) {
+                const supplierSection = key.split('_')[0];
+                if (supplierSection) {
+                    compatibleSections.push(supplierSection);
+                }
+            }
+        }
+        // Adiciona regra especial de TI
+        if (CONNECTION_MATRIX['all_buy_J']) {
+            compatibleSections.push(...CONNECTION_MATRIX['all_buy_J']);
+        }
+        return [...new Set(compatibleSections)]; // Remove duplicados
+    } else { // 'sell'
+        // Se quero vender, busco por setores para os quais meu setor FORNECE.
+        const key = `${userCnaeSection}_sell`;
+        return CONNECTION_MATRIX[key] || [];
+    }
+}
+
 
 function getBoundingBox(latitude: number, longitude: number, radiusInKm: number) {
   const kmInDegree = 111;
@@ -54,7 +101,8 @@ function getBoundingBox(latitude: number, longitude: number, radiusInKm: number)
 }
 
 export async function findConnections(userId: string, userProfile: UserProfile, userCompany: Company): Promise<Connection[]> {
-    const searchRadiusKm = userProfile.preferences?.searchRadiusKm || 10;
+    const searchRadiusKm = userProfile.preferences?.searchRadiusKm || 50;
+    const businessMode = userProfile.preferences?.businessMode || 'sell'; // Default to selling
     const limitResults = 5;
 
     const interactionsQuery = query(collection(db, 'interactions'), where('userId', '==', userId));
@@ -65,7 +113,7 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     const userCnaeSection = getCnaeSection(userCompany.cnaePrincipal.code);
     if (!userCnaeSection) return [];
     
-    const compatibleCnaeSections = CONNECTION_MATRIX[userCnaeSection] || [];
+    const compatibleCnaeSections = getCompatibleCnaeSections(userCnaeSection, businessMode as 'buy' | 'sell');
     if (compatibleCnaeSections.length === 0) return [];
 
     const { minLat, maxLat, minLon, maxLon } = getBoundingBox(userCompany.latitude, userCompany.longitude, searchRadiusKm);

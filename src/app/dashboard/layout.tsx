@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Home, Link as LinkIcon, LogOut, Menu, User, Handshake } from "lucide-react";
+import { Home, LogOut, Menu, User, Handshake } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import AuthGuard from "@/components/auth/AuthGuard";
