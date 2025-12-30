@@ -39,20 +39,20 @@ export function AuthForm() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
 
-  const handleAuthError = (error: any, context: 'login' | 'register' | 'google') => {
-    let description = error.message || "Ocorreu um erro inesperado. Tente novamente.";
-    if (error.code === 'auth/email-already-in-use') {
-      description = "Este email já está em uso. Tente fazer login.";
-    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-      description = "Email ou senha incorretos. Por favor, tente novamente.";
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      description = "O popup de login foi fechado. Tente novamente.";
-    }
-    
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const handleAuthError = (error: any, context: string) => {
+    console.error(`Error during ${context}:`, error);
     toast({
         variant: "destructive",
         title: `Erro no ${context}`,
-        description,
+        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
     });
   }
 
