@@ -1,3 +1,4 @@
+import AuthGuard from "@/components/auth/AuthGuard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -71,46 +72,48 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
-            <div className="hidden border-r bg-card lg:block">
-                <div className="flex h-full max-h-screen flex-col gap-2">
-                    <div className="flex h-20 items-center border-b px-6">
-                        <Link href="/dashboard">
-                            <Logo />
-                        </Link>
-                    </div>
-                    <div className="flex-1 overflow-auto py-2">
-                       <SidebarNav />
+        <AuthGuard>
+            <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
+                <div className="hidden border-r bg-card lg:block">
+                    <div className="flex h-full max-h-screen flex-col gap-2">
+                        <div className="flex h-20 items-center border-b px-6">
+                            <Link href="/dashboard">
+                                <Logo />
+                            </Link>
+                        </div>
+                        <div className="flex-1 overflow-auto py-2">
+                        <SidebarNav />
+                        </div>
                     </div>
                 </div>
+                <div className="flex flex-col">
+                    <header className="flex h-20 items-center gap-4 border-b bg-card px-6">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="icon" className="shrink-0 lg:hidden">
+                                    <Menu className="h-5 w-5" />
+                                    <span className="sr-only">Toggle navigation menu</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="flex flex-col">
+                                <div className="flex h-20 items-center border-b px-6 -ml-6 -mr-6">
+                                    <Link href="/dashboard">
+                                        <Logo />
+                                    </Link>
+                                </div>
+                                <SidebarNav />
+                            </SheetContent>
+                        </Sheet>
+                        <div className="w-full flex-1">
+                        {/* Can add breadcrumbs or search here */}
+                        </div>
+                        <UserMenu />
+                    </header>
+                    <main className="flex-1 overflow-y-auto bg-secondary p-4 md:p-6 lg:p-8">
+                        {children}
+                    </main>
+                </div>
             </div>
-            <div className="flex flex-col">
-                <header className="flex h-20 items-center gap-4 border-b bg-card px-6">
-                     <Sheet>
-                        <SheetTrigger asChild>
-                            <Button variant="outline" size="icon" className="shrink-0 lg:hidden">
-                                <Menu className="h-5 w-5" />
-                                <span className="sr-only">Toggle navigation menu</span>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col">
-                            <div className="flex h-20 items-center border-b px-6 -ml-6 -mr-6">
-                                <Link href="/dashboard">
-                                    <Logo />
-                                </Link>
-                            </div>
-                            <SidebarNav />
-                        </SheetContent>
-                    </Sheet>
-                    <div className="w-full flex-1">
-                       {/* Can add breadcrumbs or search here */}
-                    </div>
-                    <UserMenu />
-                </header>
-                <main className="flex-1 overflow-y-auto bg-secondary p-4 md:p-6 lg:p-8">
-                    {children}
-                </main>
-            </div>
-        </div>
+        </AuthGuard>
     );
 }
