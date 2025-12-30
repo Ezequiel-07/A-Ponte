@@ -28,7 +28,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Only initialize if not already done
+        let app: FirebaseApp;
         if (getApps().length === 0) {
             const response = await fetch('/api/firebase-config');
             if (!response.ok) {
@@ -37,19 +37,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             const firebaseConfig: FirebaseOptions = await response.json();
             
             if (firebaseConfig && firebaseConfig.apiKey) {
-                const app = initializeApp(firebaseConfig);
-                const auth = getAuth(app);
-                const db = getFirestore(app);
-                setFirebaseServices({ auth, db });
+                app = initializeApp(firebaseConfig);
             } else {
                 throw new Error("Firebase config is missing or invalid.");
             }
         } else {
-            const app = getApp();
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            setFirebaseServices({ auth, db });
+            app = getApp();
         }
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        setFirebaseServices({ auth, db });
       } catch (error: any) {
         console.error("Firebase initialization failed:", error);
         toast({

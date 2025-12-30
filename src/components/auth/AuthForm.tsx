@@ -42,7 +42,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
-  const { auth, db } = useAuth(); // Get auth and db from the context
+  const { auth, db } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
