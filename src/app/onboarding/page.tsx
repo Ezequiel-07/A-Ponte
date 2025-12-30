@@ -40,7 +40,7 @@ type BrasilApiCompanyProfile = {
   logradouro: string;
   numero: string;
   cep: string;
-  cnaes_secundarios: {
+  cnaes_secundarios?: {
     codigo: number;
     descricao: string;
   }[];
@@ -132,7 +132,7 @@ export default function OnboardingPage() {
                 code: companyData.cnae_fiscal.toString(),
                 description: companyData.cnae_fiscal_descricao,
             },
-            cnaesSecundarios: companyData.cnaes_secundarios.map(c => ({code: c.codigo.toString(), description: c.descricao})),
+            cnaesSecundarios: companyData.cnaes_secundarios ? companyData.cnaes_secundarios.map(c => ({code: c.codigo.toString(), description: c.descricao})) : [],
             bioInstitucional: '', 
             endereco: {
                 logradouro: companyData.logradouro,

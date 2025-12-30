@@ -27,7 +27,7 @@ export interface Company {
     code: string;
     description: string;
   };
-  cnaesSecundarios: {
+  cnaesSecundarios?: {
     code: string;
     description: string;
   }[];
