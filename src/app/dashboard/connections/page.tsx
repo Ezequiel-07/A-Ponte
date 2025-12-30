@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,7 +11,7 @@ import { ConnectionCard } from './ConnectionCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ConnectionsPage() {
-  const { user, userProfile } = useAuth();
+  const { userProfile } = useAuth();
   const [connections, setConnections] = useState<({ connection: Connection; company: Company })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +27,8 @@ export default function ConnectionsPage() {
         setError(null);
         const establishedConnections = await getEstablishedConnections(userProfile.companyId);
         setConnections(establishedConnections);
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        console.error("Error fetching connections: ", err);
         setError('Não foi possível carregar as conexões.');
       } finally {
         setIsLoading(false);

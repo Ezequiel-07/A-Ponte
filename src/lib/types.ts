@@ -13,8 +13,6 @@ export interface UserProfile {
     searchRadiusKm: number;
     businessMode: 'buy' | 'sell'; // Modo de interesse principal
   };
-  createdAt: FieldValue;
-  updatedAt: FieldValue;
 }
 
 // --- Dados das Empresas ---
@@ -78,7 +76,7 @@ export interface Interaction {
 }
 
 
-// --- Tipos existentes (mantidos para compatibilidade) ---
+// --- Tipos para APIs Externas ---
 
 /**
  * Perfil da empresa como retornado pela BrasilAPI.
@@ -100,15 +98,4 @@ export type CompanyProfile = {
     descricao: string;
   }[];
   ddd_telefone_1: string;
-  descricao_porte: string;
-  natureza_juridica: string;
-};
-
-/**
- * Estrutura para uma recomendação de parceria (pode ser mock ou gerado pela IA).
- */
-export type PartnershipRecommendation = {
-  company: Company;
-  synergy_score: number;
-  key_factors: string[];
 };

@@ -1,6 +1,6 @@
 'use server';
 
-import { collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import ngeohash from 'ngeohash';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/firebase/client';
@@ -160,8 +160,8 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
             status: 'requested', // This is a virtual status for recommendation
             compatibilityScore,
             compatibilityReason,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
         };
         return connection;
     });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/lib/hooks/use-toast';
 import { Company, Connection, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +56,6 @@ export default function DashboardPage() {
         
         toast({ title: 'Recomendações geradas!', description: `Encontramos ${results.length} parceiros em potencial.` });
     } catch (error: any) {
-      console.error(error);
       toast({
         variant: 'destructive',
         title: 'Erro ao gerar recomendações',

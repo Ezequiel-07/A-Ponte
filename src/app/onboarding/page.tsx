@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/lib/hooks/use-toast';
 import { geocodeAddress, generateGeohash } from '@/lib/geocoding';
 import { db } from '@/lib/firebase/client';
 import type { CompanyProfile, Company } from '@/lib/types';
@@ -72,7 +72,6 @@ export default function OnboardingPage() {
       setCompanyData(data);
       toast({ title: 'Empresa Encontrada!', description: data.razao_social });
     } catch (err) {
-      console.error(err);
       setError('Não foi possível encontrar dados para este CNPJ. Verifique o número e tente novamente.');
       toast({ variant: 'destructive', title: 'Erro ao buscar CNPJ' });
     } finally {
@@ -146,7 +145,6 @@ export default function OnboardingPage() {
         router.push('/dashboard');
 
     } catch (err: any) {
-        console.error(err);
         setError(err.message || 'Ocorreu um erro ao salvar os dados. Tente novamente.');
         toast({ variant: 'destructive', title: 'Erro ao Confirmar Empresa' });
         setIsLoading(false);
