@@ -1,7 +1,6 @@
 
 'use server';
 
-import { collection, query, where, getDocs, doc, getDoc, type Firestore } from 'firebase/firestore';
 import ngeohash from 'ngeohash';
 import { v4 as uuidv4 } from 'uuid';
 import type { Company, Connection, Interaction, UserProfile } from '../types';
@@ -107,8 +106,8 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     const businessMode = userProfile.preferences?.businessMode || 'sell';
     const limitResults = isProfessional ? 15 : 5;
 
-    const interactionsQuery = query(collection(db, 'interactions'), where('userId', '==', userId));
-    const interactionsSnap = await getDocs(interactionsQuery);
+    const interactionsQuery = db.collection('interactions').where('userId', '==', userId);
+    const interactionsSnap = await interactionsQuery.get();
     const excludedCompanyIds = interactionsSnap.docs.map(doc => (doc.data() as Interaction).companyId);
     excludedCompanyIds.push(userCompany.id);
 
@@ -123,13 +122,11 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     const lower = ngeohash.encode(minLat, minLon);
     const upper = ngeohash.encode(maxLat, maxLon);
 
-    let companiesQuery = query(
-        collection(db, 'companies'),
-        where('geohash', '>=', lower),
-        where('geohash', '<=', upper),
-    );
+    let companiesQuery = db.collection('companies')
+        .where('geohash', '>=', lower)
+        .where('geohash', '<=', upper);
     
-    const querySnapshot = await getDocs(companiesQuery);
+    const querySnapshot = await companiesQuery.get();
     
     const potentialMatches: Company[] = [];
     querySnapshot.forEach(doc => {
@@ -170,22 +167,18 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     return Promise.all(connectionPromises);
 }
 
-export async function getEstablishedConnections(companyId: string, db: Firestore): Promise<({ connection: Connection; company: Company })[]> {
+export async function getEstablishedConnections(companyId: string): Promise<({ connection: Connection; company: Company })[]> {
   // Find connections where the current user's company was the target and the status is 'connected'
-  const query1 = query(
-    collection(db, 'connections'),
-    where('targetCompanyId', '==', companyId),
-    where('status', '==', 'connected')
-  );
+  const query1 = db.collection('connections')
+    .where('targetCompanyId', '==', companyId)
+    .where('status', '==', 'connected');
 
   // Find connections where the current user's company was the requester and the status is 'connected'
-  const query2 = query(
-    collection(db, 'connections'),
-    where('requesterCompanyId', '==', companyId),
-    where('status', '==', 'connected')
-  );
+  const query2 = db.collection('connections')
+    .where('requesterCompanyId', '==', companyId)
+    .where('status', '==', 'connected');
 
-  const [snapshot1, snapshot2] = await Promise.all([getDocs(query1), getDocs(query2)]);
+  const [snapshot1, snapshot2] = await Promise.all([query1.get(), query2.get()]);
 
   const connectionsMap = new Map<string, { connection: Connection; companyId: string }>();
 
@@ -202,9 +195,9 @@ export async function getEstablishedConnections(companyId: string, db: Firestore
   const establishedConnections = Array.from(connectionsMap.values());
 
   const companyPromises = establishedConnections.map(async ({ connection, companyId }) => {
-    const companyRef = doc(db, 'companies', companyId);
-    const companySnap = await getDoc(companyRef);
-    if (companySnap.exists()) {
+    const companyRef = db.collection('companies').doc(companyId);
+    const companySnap = await companyRef.get();
+    if (companySnap.exists) {
       return { connection, company: companySnap.data() as Company };
     }
     return null;
