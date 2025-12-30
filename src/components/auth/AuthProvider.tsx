@@ -1,11 +1,9 @@
 "use client";
 
-import { initializeFirebaseClient } from '@/lib/firebase/client';
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
+import { getAuth, type Auth, onAuthStateChanged, type User } from "firebase/auth";
+import { getFirestore, type Firestore, doc, onSnapshot, setDoc } from "firebase/firestore";
 import type { UserProfile } from '@/lib/types';
-import type { User, Auth } from 'firebase/auth';
-import type { Firestore } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/components/ui/toaster';
 import { Loader2 } from 'lucide-react';
@@ -30,11 +28,46 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const services = await initializeFirebaseClient();
-        if (services) {
-          setFirebaseServices(services);
-          const { auth, db } = services;
-          const unsubscribe = onAuthStateChanged(auth, (user) => {
+        // Only initialize if not already done
+        if (getApps().length === 0) {
+            const response = await fetch('/api/firebase-config');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch Firebase config: ${response.statusText}`);
+            }
+            const firebaseConfig: FirebaseOptions = await response.json();
+            
+            if (firebaseConfig && firebaseConfig.apiKey) {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+                setFirebaseServices({ auth, db });
+            } else {
+                throw new Error("Firebase config is missing or invalid.");
+            }
+        } else {
+            const app = getApp();
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            setFirebaseServices({ auth, db });
+        }
+      } catch (error: any) {
+        console.error("Firebase initialization failed:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erro Crítico de Inicialização',
+          description: error.message || 'Não foi possível conectar aos serviços. Tente recarregar a página.',
+        });
+        setLoading(false); // Stop loading on critical error
+      }
+    };
+    
+    initAuth();
+  }, [toast]);
+
+  useEffect(() => {
+    if (firebaseServices) {
+        const { auth, db } = firebaseServices;
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
             setLoading(true);
             if (user) {
               setUser(user);
@@ -43,7 +76,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 if (docSnap.exists()) {
                   setUserProfile(docSnap.data() as UserProfile);
                 } else {
-                  // Profile is created in AuthForm now, so we just set loading to false.
+                  // Profile might be created in AuthForm during signup
                   setUserProfile(null);
                 }
                 setLoading(false);
@@ -62,24 +95,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               setUserProfile(null);
               setLoading(false);
             }
-          });
-          return () => unsubscribe();
-        } else {
-          throw new Error('Firebase services could not be initialized.');
-        }
-      } catch (error: any) {
-        console.error("Firebase initialization failed:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Erro Crítico de Inicialização',
-          description: error.message || 'Não foi possível conectar aos serviços. Tente recarregar a página.',
         });
-        setLoading(false);
-      }
-    };
-    
-    initAuth();
-  }, [toast]);
+        return () => unsubscribe();
+    }
+  }, [firebaseServices, toast]);
   
   const value = useMemo(() => (firebaseServices ? { 
       user, 
@@ -89,6 +108,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       db: firebaseServices.db,
     } : undefined), [user, userProfile, loading, firebaseServices]);
 
+  // Show a loading screen until Firebase is initialized
   if (!value) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">

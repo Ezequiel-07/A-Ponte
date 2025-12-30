@@ -42,7 +42,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
-  const { auth, db } = useAuth();
+  const { auth, db } = useAuth(); // Get auth and db from the context
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -70,11 +70,13 @@ export function AuthForm() {
                  description = "Credenciais inválidas. Verifique seu email e senha.";
                  break;
             case 'auth/api-key-not-valid':
-                description = "Chave de API do Firebase inválida. Verifique a configuração.";
+                description = `Chave de API do Firebase inválida. Verifique a configuração. Detalhe: ${error.message}`;
                 break;
             default:
                 description = `Erro: ${error.message}`;
         }
+    } else {
+      description = error.message || description;
     }
     toast({
         variant: "destructive",
@@ -103,7 +105,7 @@ export function AuthForm() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // Create user profile document
+      // Create user profile document directly here
       const newUserProfile: UserProfile = {
         uid: user.uid,
         email: user.email,
@@ -128,8 +130,7 @@ export function AuthForm() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-       // Create user profile document for Google Sign-In if it doesn't exist
-       // Note: The onAuthStateChanged in AuthProvider will handle fetching it, but creation is safer here.
+       // Create or merge user profile document for Google Sign-In
        const newUserProfile: UserProfile = {
         uid: user.uid,
         email: user.email,

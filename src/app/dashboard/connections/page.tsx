@@ -11,21 +11,21 @@ import { ConnectionCard } from './ConnectionCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ConnectionsPage() {
-  const { userProfile } = useAuth();
+  const { userProfile, db } = useAuth();
   const [connections, setConnections] = useState<({ connection: Connection; company: Company })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchConnections = async () => {
-      if (!userProfile?.companyId) {
+      if (!userProfile?.companyId || !db) {
         setIsLoading(false);
         return;
       }
       try {
         setIsLoading(true);
         setError(null);
-        const establishedConnections = await getEstablishedConnections(userProfile.companyId);
+        const establishedConnections = await getEstablishedConnections(userProfile.companyId, db);
         setConnections(establishedConnections);
       } catch (err: any) {
         console.error("Error fetching connections: ", err);
@@ -36,7 +36,7 @@ export default function ConnectionsPage() {
     };
 
     fetchConnections();
-  }, [userProfile?.companyId]);
+  }, [userProfile?.companyId, db]);
 
   return (
     <div className="space-y-8">

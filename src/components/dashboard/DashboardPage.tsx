@@ -11,13 +11,12 @@ import { RationaleSheet } from './RationaleSheet';
 import { useAuth } from '../auth/AuthProvider';
 import { findConnections } from '@/lib/data/connections';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, db } = useAuth();
   const [recommendations, setRecommendations] = useState<Connection[]>([]);
   const [isGeneratingRecs, setIsGeneratingRecs] = useState(false);
   const [selectedForRationale, setSelectedForRationale] = useState<Connection | null>(null);
@@ -25,10 +24,10 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   const handleFindPartners = async () => {
-    if (!user || !userProfile?.companyId) {
+    if (!user || !userProfile?.companyId || !db) {
       toast({
         variant: 'destructive',
-        title: 'Perfil incompleto',
+        title: 'Perfil incompleto ou erro de conexão',
         description: 'Você precisa ter uma empresa associada para buscar parceiros.',
       });
       return;
@@ -47,7 +46,7 @@ export default function DashboardPage() {
         
         const userCompany = companySnap.data() as Company;
 
-        const results = await findConnections(user.uid, userProfile, userCompany);
+        const results = await findConnections(user.uid, userProfile, userCompany, db);
         
         // Sort results by compatibilityScore
         results.sort((a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0));

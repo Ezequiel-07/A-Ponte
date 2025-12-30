@@ -1,10 +1,9 @@
 
 'use server';
 
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, type Firestore } from 'firebase/firestore';
 import ngeohash from 'ngeohash';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '@/lib/firebase/client';
 import type { Company, Connection, Interaction, UserProfile } from '../types';
 import { explainRecommendation } from '@/ai/flows';
 
@@ -101,7 +100,7 @@ function getBoundingBox(latitude: number, longitude: number, radiusInKm: number)
   };
 }
 
-export async function findConnections(userId: string, userProfile: UserProfile, userCompany: Company): Promise<Connection[]> {
+export async function findConnections(userId: string, userProfile: UserProfile, userCompany: Company, db: Firestore): Promise<Connection[]> {
     const isProfessional = userProfile.subscriptionTier === 'professional';
     const searchRadiusKm = userProfile.preferences?.searchRadiusKm || (isProfessional ? 50 : 15);
     const businessMode = userProfile.preferences?.businessMode || 'sell';
@@ -170,7 +169,7 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     return Promise.all(connectionPromises);
 }
 
-export async function getEstablishedConnections(companyId: string): Promise<({ connection: Connection; company: Company })[]> {
+export async function getEstablishedConnections(companyId: string, db: Firestore): Promise<({ connection: Connection; company: Company })[]> {
   // Find connections where the current user's company was the target and the status is 'connected'
   const query1 = query(
     collection(db, 'connections'),

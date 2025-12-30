@@ -18,8 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toaster';
 import { geocodeAddress, generateGeohash } from '@/lib/geocoding';
-import { db } from '@/lib/firebase/client';
-import type { CompanyProfile, Company } from '@/lib/types';
+import type { Company } from '@/lib/types';
 import { Logo } from '@/components/Logo';
 
 const onboardingSchema = z.object({
@@ -28,13 +27,34 @@ const onboardingSchema = z.object({
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
+// Este tipo é para a resposta da BrasilAPI
+type BrasilApiCompanyProfile = {
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia: string;
+  cnae_fiscal_descricao: string;
+  cnae_fiscal: number;
+  uf: string;
+  municipio: string;
+  bairro: string;
+  logradouro: string;
+  numero: string;
+  cep: string;
+  cnaes_secundarios: {
+    codigo: number;
+    descricao: string;
+  }[];
+  ddd_telefone_1: string;
+};
+
+
 export default function OnboardingPage() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading, db } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [companyData, setCompanyData] = useState<CompanyProfile | null>(null);
+  const [companyData, setCompanyData] = useState<BrasilApiCompanyProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,7 +83,7 @@ export default function OnboardingPage() {
 
     try {
       const response = await axios.get(`https://brasilapi.com.br/api/cnpj/v1/${values.cnpj}`);
-      const data: CompanyProfile = response.data;
+      const data: BrasilApiCompanyProfile = response.data;
       
       if (!data.logradouro || !data.municipio || !data.uf) {
         throw new Error('Endereço inválido retornado pela API.');
@@ -80,7 +100,7 @@ export default function OnboardingPage() {
   };
 
   const handleConfirmCompany = async () => {
-    if (!companyData || !user) return;
+    if (!companyData || !user || !db) return;
     
     setIsLoading(true);
     setError(null);
@@ -120,7 +140,7 @@ export default function OnboardingPage() {
                 bairro: companyData.bairro,
                 cidade: companyData.municipio,
                 uf: companyData.uf,
-                cep: companyData.cep.replace(/\D/g, ''),
+                cep: companyData.cep.toString().replace(/\D/g, ''),
                 pais: 'Brasil',
             },
             latitude: geo.lat,

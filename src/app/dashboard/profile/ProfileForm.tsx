@@ -4,7 +4,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
 import { useToast } from '@/components/ui/toaster';
 import { UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const profileSchema = z.object({
   searchRadiusKm: z.number().min(5).max(100),
@@ -26,6 +26,7 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ userProfile }: ProfileFormProps) {
+  const { db } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const isProfessional = userProfile.subscriptionTier === 'professional';
@@ -39,6 +40,7 @@ export function ProfileForm({ userProfile }: ProfileFormProps) {
   });
 
   const onSubmit = async (data: ProfileFormValues) => {
+    if (!db) return;
     setIsSaving(true);
     try {
       const userRef = doc(db, 'users', userProfile.uid);
