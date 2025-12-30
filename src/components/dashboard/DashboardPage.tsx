@@ -9,7 +9,7 @@ import { Loader2, Search, Sparkles } from 'lucide-react';
 import { RecommendationsList } from './RecommendationsList';
 import { RationaleSheet } from './RationaleSheet';
 import { useAuth } from '../auth/AuthProvider';
-import { findConnections } from '@/lib/connections';
+import { findConnections } from '@/lib/data/connections';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';

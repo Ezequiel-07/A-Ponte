@@ -28,7 +28,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
 
   useEffect(() => {
-    initializeFirebaseClient().then(services => {
+    const initAuth = async () => {
+      const services = await initializeFirebaseClient();
       if(services) {
         setFirebaseServices(services);
         const { auth, db } = services;
@@ -94,7 +95,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           description: 'Não foi possível conectar aos serviços do Firebase.'
         });
       }
-    });
+    };
+    
+    initAuth();
   }, [toast]);
   
   const value = useMemo(() => ({ 

@@ -1,140 +1,128 @@
-# Modelagem de Dados do Firestore - A Ponte
+"use client";
 
-Este documento descreve a estrutura de coleções e os dados armazenados no Firestore para a plataforma "A Ponte". A modelagem foi pensada para otimizar as queries principais da aplicação e garantir escalabilidade.
+import { initializeFirebaseClient } from '@/lib/firebase/client';
+import type { UserProfile } from '@/lib/types';
+import type { User, Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { useToast } from '@/components/ui/toaster';
+import { Loader2 } from 'lucide-react';
 
-## Estrutura das Coleções
+type AuthContextType = {
+  user: User | null;
+  userProfile: UserProfile | null;
+  loading: boolean;
+  auth: Auth | null;
+  db: Firestore | null;
+};
 
--   `/users/{userId}`
--   `/companies/{companyId}`
--   `/connections/{connectionId}`
--   `/interactions/{interactionId}`
+const AuthContext = createContext<AuthContextType>({ user: null, userProfile: null, loading: true, auth: null, db: null });
 
----
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [firebaseServices, setFirebaseServices] = useState<{auth: Auth, db: Firestore} | null>(null);
+  const { toast } = useToast();
 
-### 1. Coleção `users`
+  useEffect(() => {
+    const initAuth = async () => {
+      const services = await initializeFirebaseClient();
+      if(services) {
+        setFirebaseServices(services);
+        const { auth, db } = services;
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          setLoading(true);
+          if (user) {
+            setUser(user);
+            const userRef = doc(db, 'users', user.uid);
 
-Armazena informações sobre os usuários autenticados na plataforma, suas preferências e a empresa que representam.
+            const unsubProfile = onSnapshot(userRef, (docSnap) => {
+              if (docSnap.exists()) {
+                setUserProfile(docSnap.data() as UserProfile);
+                setLoading(false);
+              } else {
+                const newUserProfile: UserProfile = {
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: user.displayName,
+                  photoURL: user.photoURL,
+                  subscriptionTier: 'free',
+                };
+                setDoc(userRef, newUserProfile)
+                  .then(() => {
+                    setUserProfile(newUserProfile);
+                    setLoading(false);
+                  })
+                  .catch((error) => {
+                    console.error("Error creating user profile:", error);
+                    toast({
+                      variant: 'destructive',
+                      title: 'Erro ao criar perfil',
+                      description: `Ocorreu um erro: ${error.message}`
+                    });
+                    setLoading(false);
+                  });
+              }
+            }, (error) => {
+              console.error("Error listening to user profile:", error);
+              toast({
+                variant: 'destructive',
+                title: 'Erro de Sincronização',
+                description: `Não foi possível sincronizar seu perfil: ${error.message}`
+              });
+              setLoading(false);
+            });
 
-**Caminho:** `/users/{userId}`
+            return () => {
+              unsubProfile();
+            };
+          } else {
+            setUser(null);
+            setUserProfile(null);
+            setLoading(false);
+          }
+        });
 
--   `userId`: O UID do Firebase Authentication.
+        return () => unsubscribe();
+      } else {
+        setLoading(false);
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Inicialização',
+          description: 'Não foi possível conectar aos serviços do Firebase.'
+        });
+      }
+    };
+    
+    initAuth();
+  }, [toast]);
+  
+  const value = useMemo(() => ({ 
+      user, 
+      userProfile, 
+      loading, 
+      auth: firebaseServices?.auth || null, 
+      db: firebaseServices?.db || null 
+    }), [user, userProfile, loading, firebaseServices]);
 
-#### Estrutura do Documento
+  if (loading && !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-```json
-{
-  "uid": "string",
-  "email": "string",
-  "companyId": "string", // FK para a coleção `companies`
-  "subscriptionTier": "string ('free' | 'professional')",
-  "preferences": {
-    "searchRadiusKm": "number",
-    "businessMode": "string ('buy' | 'sell' | 'both')"
-  },
-  "createdAt": "timestamp"
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-```
 
-#### Índices Recomendados
-
--   `companyId`: Para buscar todos os usuários de uma mesma empresa.
-
----
-
-### 2. Coleção `companies`
-
-Contém o perfil detalhado de cada empresa cadastrada na plataforma. É a coleção central para as buscas e recomendações.
-
-**Caminho:** `/companies/{companyId}`
-
-#### Estrutura do Documento
-
-```json
-{
-  "id": "string",
-  "cnpj": "string",
-  "razaoSocial": "string",
-  "nomeFantasia": "string",
-  "cnaePrincipal": {
-    "code": "string",
-    "description": "string"
-  },
-  "cnaesSecundarios": ["array<object>"],
-  "bioInstitucional": "string",
-  "endereco": {
-    "cidade": "string",
-    "uf": "string",
-    "cep": "string",
-    "...": "..."
-  },
-  "latitude": "number",
-  "longitude": "number",
-  "geohash": "string",
-  "tagsOperacionais": ["array<string>"],
-  "fotos": ["array<string>"],
-  "createdAt": "timestamp"
-}
-```
-
-#### Índices Recomendados
-
--   **`geohash`**: Essencial para queries geoespaciais (buscar empresas em um raio).
--   **`cnaePrincipal.code`**: Para filtrar empresas por setor de atividade.
--   **`tagsOperacionais` (array-contains)**: Para buscar empresas com tags operacionais específicas.
--   **`endereco.uf`** e **`endereco.cidade`**: Para filtros de localização.
--   **Índices compostos** serão necessários para combinar os filtros acima. Por exemplo: `(geohash, cnaePrincipal.code)` ou `(endereco.uf, cnaePrincipal.code)`. O console do Firestore sugerirá a criação desses índices quando as queries forem executadas no código.
-
----
-
-### 3. Coleção `connections`
-
-Registra o estado de uma conexão entre duas empresas.
-
-**Caminho:** `/connections/{connectionId}`
-
-#### Estrutura do Documento
-
-```json
-{
-  "id": "string",
-  "requesterCompanyId": "string", // FK para `companies`
-  "targetCompanyId": "string",    // FK para `companies`
-  "status": "string ('requested' | 'connected' | 'dismissed')",
-  "compatibilityScore": "number",
-  "compatibilityReason": "string",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-```
-
-#### Índices Recomendados
-
--   **`(requesterCompanyId, status)`**: Para que uma empresa possa ver suas solicitações enviadas.
--   **`(targetCompanyId, status)`**: Para que uma empresa possa ver as solicitações recebidas.
--   Índice composto para identificar uma conexão única: **`(requesterCompanyId, targetCompanyId)`**.
-
----
-
-### 4. Coleção `interactions`
-
-Log de interações importantes do usuário, como solicitar conexão ou dispensar uma recomendação. Útil para analytics e para evitar mostrar empresas já dispensadas.
-
-**Caminho:** `/interactions/{interactionId}`
-
-#### Estrutura do Documento
-
-```json
-{
-  "id": "string",
-  "userId": "string", // FK para `users`
-  "companyId": "string", // FK para `companies` (a empresa que sofreu a ação)
-  "action": "string ('connection_request' | 'dismiss')",
-  "timestamp": "timestamp"
-}
-```
-
-#### Índices Recomendados
-
--   **`(userId, action)`**: Para buscar todas as interações de um tipo por um usuário (ex: todas as empresas que um usuário dispensou).
--   **`(userId, companyId)`**: Para verificar rapidamente se um usuário já interagiu com uma empresa específica.
-```
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
