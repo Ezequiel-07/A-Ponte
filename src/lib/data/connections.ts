@@ -1,11 +1,12 @@
 
 'use server';
 
-import { collection, query, where, getDocs, doc, getDoc, type Firestore, initializeFirestore } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, type Firestore } from 'firebase/firestore';
 import ngeohash from 'ngeohash';
 import { v4 as uuidv4 } from 'uuid';
 import type { Company, Connection, Interaction, UserProfile } from '../types';
 import { explainRecommendation } from '@/ai/flows';
+import { db } from '@/lib/firebase/server';
 
 // Mapeia uma seção do CNAE (letra) para outras seções compatíveis.
 // Chave: Seção do CNAE da empresa do usuário.
@@ -101,7 +102,6 @@ function getBoundingBox(latitude: number, longitude: number, radiusInKm: number)
 }
 
 export async function findConnections(userId: string, userProfile: UserProfile, userCompany: Company): Promise<Connection[]> {
-    const db = initializeFirestore({ projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID });
     const isProfessional = userProfile.subscriptionTier === 'professional';
     const searchRadiusKm = userProfile.preferences?.searchRadiusKm || (isProfessional ? 50 : 15);
     const businessMode = userProfile.preferences?.businessMode || 'sell';
