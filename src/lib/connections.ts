@@ -101,9 +101,10 @@ function getBoundingBox(latitude: number, longitude: number, radiusInKm: number)
 }
 
 export async function findConnections(userId: string, userProfile: UserProfile, userCompany: Company): Promise<Connection[]> {
-    const searchRadiusKm = userProfile.preferences?.searchRadiusKm || 50;
-    const businessMode = userProfile.preferences?.businessMode || 'sell'; // Default to selling
-    const limitResults = 5;
+    const isProfessional = userProfile.subscriptionTier === 'professional';
+    const searchRadiusKm = userProfile.preferences?.searchRadiusKm || (isProfessional ? 50 : 15);
+    const businessMode = userProfile.preferences?.businessMode || 'sell';
+    const limitResults = isProfessional ? 15 : 5;
 
     const interactionsQuery = query(collection(db, 'interactions'), where('userId', '==', userId));
     const interactionsSnap = await getDocs(interactionsQuery);

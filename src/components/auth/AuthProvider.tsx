@@ -47,7 +47,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     email: user.email,
                     displayName: user.displayName,
                     photoURL: user.photoURL,
-                    subscriptionTier: 'free',
+                    subscriptionTier: 'free', // Default to free tier
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                 };

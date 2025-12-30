@@ -28,11 +28,12 @@ interface ProfileFormProps {
 export function ProfileForm({ userProfile }: ProfileFormProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const isProfessional = userProfile.subscriptionTier === 'professional';
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      searchRadiusKm: userProfile.preferences?.searchRadiusKm || 50,
+      searchRadiusKm: userProfile.preferences?.searchRadiusKm || (isProfessional ? 50 : 10),
       businessMode: userProfile.preferences?.businessMode || 'sell',
     },
   });
@@ -59,6 +60,8 @@ export function ProfileForm({ userProfile }: ProfileFormProps) {
         setIsSaving(false);
     }
   };
+  
+  const maxRadius = isProfessional ? 100 : 15;
 
   return (
     <Form {...form}>
@@ -79,7 +82,7 @@ export function ProfileForm({ userProfile }: ProfileFormProps) {
                             value={[value]}
                             onValueChange={(vals) => onChange(vals[0])}
                             min={5}
-                            max={100}
+                            max={maxRadius}
                             step={5}
                         />
                          <p className="text-center text-sm text-muted-foreground mt-2">{value} km</p>
@@ -88,7 +91,7 @@ export function ProfileForm({ userProfile }: ProfileFormProps) {
                 />
               </FormControl>
                <FormDescription>
-                Defina a distância máxima para encontrar empresas parceiras.
+                Defina a distância máxima para encontrar empresas parceiras. {!isProfessional && "Assine o plano PRO para um raio de até 100km."}
               </FormDescription>
             </FormItem>
           )}
