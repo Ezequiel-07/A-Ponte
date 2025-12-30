@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -9,11 +10,12 @@ import { Loader2, Search, Sparkles } from 'lucide-react';
 import { RecommendationsList } from './RecommendationsList';
 import { RationaleSheet } from './RationaleSheet';
 import { useAuth } from '../auth/AuthProvider';
-import { findConnections } from '@/lib/data/connections';
+import { findPotentialPartners, analyzePartners } from '@/lib/data/connections';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ConfirmPartnersDialog } from './ConfirmPartnersDialog';
 
 // Helper function to convert Firestore Timestamps to ISO strings
 const convertTimestamps = (obj: any): any => {
@@ -34,8 +36,12 @@ const convertTimestamps = (obj: any): any => {
 
 export default function DashboardPage() {
   const { user, userProfile, db } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  const [potentialPartners, setPotentialPartners] = useState<Company[]>([]);
   const [recommendations, setRecommendations] = useState<Connection[]>([]);
-  const [isGeneratingRecs, setIsGeneratingRecs] = useState(false);
+  
   const [selectedForRationale, setSelectedForRationale] = useState<Connection | null>(null);
 
   const { toast } = useToast();
@@ -50,8 +56,9 @@ export default function DashboardPage() {
       return;
     };
 
-    setIsGeneratingRecs(true);
+    setIsLoading(true);
     setRecommendations([]);
+    setPotentialPartners([]);
 
     try {
         const companyRef = doc(db, "companies", userProfile.companyId);
@@ -62,28 +69,58 @@ export default function DashboardPage() {
         }
         
         const userCompany = companySnap.data() as Company;
-        
-        // Convert Firestore Timestamps to plain objects before passing to server action
         const plainUserCompany = convertTimestamps(userCompany);
 
-        const results = await findConnections(user.uid, userProfile, plainUserCompany);
+        const results = await findPotentialPartners(user.uid, userProfile, plainUserCompany);
         
-        // Sort results by compatibilityScore
-        results.sort((a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0));
-
-        setRecommendations(results);
-        
-        toast({ title: 'Recomendações geradas!', description: `Encontramos ${results.length} parceiros em potencial.` });
+        if (results.length > 0) {
+            setPotentialPartners(results);
+        } else {
+            toast({ title: 'Nenhum parceiro encontrado', description: 'Nenhuma empresa compatível foi encontrada com seus filtros atuais. Tente ajustar seu raio de busca.' });
+        }
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Erro ao gerar recomendações',
+        title: 'Erro ao buscar parceiros',
         description: error.message || 'Não conseguimos processar a solicitação. Tente novamente mais tarde.',
       });
     } finally {
-      setIsGeneratingRecs(false);
+      setIsLoading(false);
     }
   };
+
+  const handleConfirmAndAnalyze = async (partnersToAnalyze: Company[]) => {
+    if (!user || !userProfile?.companyId || !db) return;
+
+    setPotentialPartners([]); // Fecha o modal
+    setIsAnalyzing(true);
+
+    try {
+        const companyRef = doc(db, "companies", userProfile.companyId);
+        const companySnap = await getDoc(companyRef);
+
+        if (!companySnap.exists()) {
+            throw new Error("Não foi possível encontrar sua empresa.");
+        }
+        
+        const userCompany = companySnap.data() as Company;
+        const plainUserCompany = convertTimestamps(userCompany);
+
+        const analysisResults = await analyzePartners(plainUserCompany, partnersToAnalyze);
+
+        setRecommendations(analysisResults);
+        
+        toast({ title: 'Recomendações geradas!', description: `Encontramos ${analysisResults.length} parceiros em potencial.` });
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao analisar parceiros',
+            description: error.message || 'A análise da IA falhou. Tente novamente.',
+        });
+    } finally {
+        setIsAnalyzing(false);
+    }
+  }
 
   const handleExplain = (recommendation: Connection) => {
     setSelectedForRationale(recommendation);
@@ -108,8 +145,8 @@ export default function DashboardPage() {
             </CardDescription>
             </CardHeader>
             <CardContent>
-            <Button onClick={handleFindPartners} disabled={isGeneratingRecs} size="lg" className="w-full sm:w-auto">
-                    {isGeneratingRecs ? (
+            <Button onClick={handleFindPartners} disabled={isLoading || isAnalyzing} size="lg" className="w-full sm:w-auto">
+                    {isLoading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                         <Sparkles className="mr-2 h-4 w-4" />
@@ -120,7 +157,7 @@ export default function DashboardPage() {
         </Card>
       </motion.div>
       
-      {(isGeneratingRecs || recommendations.length > 0) && (
+      {(isAnalyzing || recommendations.length > 0) && (
         <div>
             <motion.h2 
               initial={{ opacity: 0, y: -10 }}
@@ -129,13 +166,13 @@ export default function DashboardPage() {
               className='font-headline text-2xl mb-4'>Recomendações de Parceria</motion.h2>
             <RecommendationsList 
               recommendations={recommendations} 
-              isLoading={isGeneratingRecs} 
+              isLoading={isAnalyzing} 
               onExplain={handleExplain}
             />
         </div>
       )}
 
-      {recommendations.length === 0 && !isGeneratingRecs && (
+      {recommendations.length === 0 && !isAnalyzing && !isLoading && (
          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -160,6 +197,13 @@ export default function DashboardPage() {
             }
         }}
         recommendation={selectedForRationale}
+      />
+
+      <ConfirmPartnersDialog
+        isOpen={potentialPartners.length > 0}
+        partners={potentialPartners}
+        onConfirm={handleConfirmAndAnalyze}
+        onCancel={() => setPotentialPartners([])}
       />
     </div>
   );

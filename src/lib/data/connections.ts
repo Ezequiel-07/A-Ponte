@@ -100,7 +100,7 @@ function getBoundingBox(latitude: number, longitude: number, radiusInKm: number)
   };
 }
 
-export async function findConnections(userId: string, userProfile: UserProfile, userCompany: Company): Promise<Connection[]> {
+export async function findPotentialPartners(userId: string, userProfile: UserProfile, userCompany: Company): Promise<Company[]> {
     const isProfessional = userProfile.subscriptionTier === 'professional';
     const searchRadiusKm = userProfile.preferences?.searchRadiusKm || (isProfessional ? 50 : 15);
     const businessMode = userProfile.preferences?.businessMode || 'sell';
@@ -142,9 +142,11 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
         }
     });
 
-    const limitedMatches = potentialMatches.slice(0, limitResults);
-    
-    const connectionPromises = limitedMatches.map(async (candidateCompany) => {
+    return potentialMatches.slice(0, limitResults);
+}
+
+export async function analyzePartners(userCompany: Company, potentialPartners: Company[]): Promise<Connection[]> {
+    const connectionPromises = potentialPartners.map(async (candidateCompany) => {
         const { compatibilityScore, compatibilityReason } = await explainRecommendation({
             userCompanyProfile: JSON.stringify(userCompany),
             candidateCompanyProfile: JSON.stringify(candidateCompany),
@@ -164,8 +166,11 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
         return connection;
     });
 
-    return Promise.all(connectionPromises);
+    const results = await Promise.all(connectionPromises);
+    results.sort((a, b) => (b.compatibilityScore || 0) - (a.compatibilityScore || 0));
+    return results;
 }
+
 
 export async function getEstablishedConnections(companyId: string): Promise<({ connection: Connection; company: Company })[]> {
   // Find connections where the current user's company was the target and the status is 'connected'
