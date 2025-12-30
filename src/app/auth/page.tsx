@@ -28,7 +28,7 @@ export default function AuthPage() {
     );
   }
 
-  // Only render the AuthForm when we know there's no user.
+  // Only render the AuthForm when we know there's no user and auth is ready.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
        <div className="absolute top-8 left-8">
