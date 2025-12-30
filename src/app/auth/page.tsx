@@ -9,18 +9,14 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
-  const { user, userProfile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && user) {
-      if (userProfile?.companyId) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/onboarding');
-      }
+      router.replace('/dashboard');
     }
-  }, [user, userProfile, loading, router]);
+  }, [user, loading, router]);
 
   if (loading || user) {
     return (

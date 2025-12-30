@@ -12,7 +12,7 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 
-import { auth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase/client';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {

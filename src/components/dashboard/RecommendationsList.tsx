@@ -3,6 +3,7 @@
 import type { Connection } from '@/lib/types';
 import { RecommendationCard } from './RecommendationCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface RecommendationsListProps {
   recommendations: Connection[];
@@ -12,13 +13,14 @@ interface RecommendationsListProps {
 
 function RecommendationSkeleton() {
     return (
-        <div className="flex flex-col space-y-3">
-            <div className='flex items-center space-x-4'>
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
-                    <Skeleton className="h-4 w-[200px]" />
+        <div className="flex flex-col space-y-3 rounded-lg border bg-card p-6">
+            <div className='flex items-start space-x-4'>
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <div className="space-y-2 flex-1">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
                 </div>
+                <Skeleton className="h-6 w-14 rounded-full" />
             </div>
             <div className='space-y-2 pt-4'>
                 <Skeleton className="h-4 w-[150px]" />
@@ -48,19 +50,25 @@ export function RecommendationsList({ recommendations, isLoading, onExplain }: R
   }
 
   if (recommendations.length === 0) {
-    return (
-        <div className="text-center py-16 border-2 border-dashed rounded-lg">
-            <h3 className="text-lg font-semibold text-muted-foreground">Nenhuma recomendação encontrada</h3>
-            <p className="text-sm text-muted-foreground mt-1">Nossa IA não encontrou parceiros compatíveis no momento. Tente novamente mais tarde.</p>
-        </div>
-    )
+    return null;
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {recommendations.map((rec, index) => (
-        <RecommendationCard key={rec.id} recommendation={rec} onExplain={onExplain} index={index} />
-      ))}
+        <AnimatePresence>
+            {recommendations.map((rec, index) => (
+                <motion.div
+                    key={rec.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    layout
+                >
+                    <RecommendationCard recommendation={rec} onExplain={onExplain} index={index} />
+                </motion.div>
+            ))}
+      </AnimatePresence>
     </div>
   );
 }

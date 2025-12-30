@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase/client";
 
 const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -54,7 +54,10 @@ function UserMenu() {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => auth.signOut()}>
+                <DropdownMenuItem onClick={() => {
+                    auth.signOut();
+                    window.location.href = '/auth';
+                }}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Sair</span>
                 </DropdownMenuItem>

@@ -1,10 +1,10 @@
 "use client";
 
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase/client';
 import type { UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -24,49 +24,50 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       if (user) {
         setUser(user);
         const userRef = doc(db, 'users', user.uid);
-        const unsubProfile = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const profileData = docSnap.data() as UserProfile;
-            setUserProfile(profileData);
-            if (!profileData.companyId) {
-              router.replace('/onboarding');
+        
+        const unsubProfile = onSnapshot(userRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const profileData = docSnap.data() as UserProfile;
+                setUserProfile(profileData);
             } else {
-              // If we are on onboarding, redirect to dashboard
-              if (window.location.pathname === '/onboarding') {
-                router.replace('/dashboard');
-              }
-            }
-          } else {
-            // Create user profile if it doesn't exist
-            const newUserProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              subscriptionTier: 'free',
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            };
-            setDoc(userRef, newUserProfile).then(() => {
+                // Create user profile if it doesn't exist
+                const newUserProfile: UserProfile = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    subscriptionTier: 'free',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                };
+                await setDoc(userRef, newUserProfile);
                 setUserProfile(newUserProfile);
-                router.replace('/onboarding');
-            });
-          }
-          setLoading(false);
+            }
+            setLoading(false);
         });
-        return () => unsubProfile();
+
+        return () => {
+            unsubProfile();
+            setLoading(false);
+        };
       } else {
         setUser(null);
         setUserProfile(null);
         setLoading(false);
+        // No user, redirect to auth page if not already there
+        if (window.location.pathname !== '/auth') {
+          router.replace('/auth');
+        }
       }
     });
+
     return () => unsubscribe();
   }, [router]);
-
+  
   const value = useMemo(() => ({ user, userProfile, loading }), [user, userProfile, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

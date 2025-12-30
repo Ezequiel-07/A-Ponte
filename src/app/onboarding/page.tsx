@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { geocodeAddress, generateGeohash } from '@/lib/geocoding';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/client';
 import type { CompanyProfile, Company } from '@/lib/types';
 import { Logo } from '@/components/Logo';
 
