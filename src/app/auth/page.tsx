@@ -7,10 +7,9 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import type { Auth } from "firebase/auth";
 
 export default function AuthPage() {
-  const { user, loading, auth } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,6 +18,8 @@ export default function AuthPage() {
     }
   }, [user, loading, router]);
 
+  // While auth is loading, or if the user is already logged in, show a loader.
+  // The useEffect above will handle redirection.
   if (loading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -27,6 +28,7 @@ export default function AuthPage() {
     );
   }
 
+  // Only render the AuthForm when we know there's no user.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
        <div className="absolute top-8 left-8">
@@ -34,7 +36,7 @@ export default function AuthPage() {
             <Logo />
         </Link>
        </div>
-      <AuthForm auth={auth} />
+      <AuthForm />
     </div>
   );
 }

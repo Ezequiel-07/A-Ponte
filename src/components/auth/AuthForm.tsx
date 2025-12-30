@@ -11,7 +11,6 @@ import {
   signInWithPopup,
   type Auth,
 } from "firebase/auth";
-import { doc, setDoc } from 'firebase/firestore';
 
 import { useToast } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
@@ -27,8 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { UserProfile } from '@/lib/types';
-import { db } from '@/lib/firebase/client';
+import { useAuth } from './AuthProvider';
 
 
 const formSchema = z.object({
@@ -38,14 +36,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AuthFormProps {
-    auth: Auth;
-}
 
-export function AuthForm({ auth }: AuthFormProps) {
+export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const { toast } = useToast();
+  const { auth } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -84,7 +80,6 @@ export function AuthForm({ auth }: AuthFormProps) {
   }
 
   const handleLogin = async (values: FormValues) => {
-    if (!auth) return;
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -97,26 +92,10 @@ export function AuthForm({ auth }: AuthFormProps) {
   };
 
   const handleRegister = async (values: FormValues) => {
-    if (!auth || !db) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Serviços de autenticação não estão prontos.' });
-        return;
-    }
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
-
-      // Create user profile document
-      const userRef = doc(db, 'users', user.uid);
-      const newUserProfile: UserProfile = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        subscriptionTier: 'free',
-      };
-      await setDoc(userRef, newUserProfile);
-
+      // The user profile will be created by the onAuthStateChanged listener in AuthProvider
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
       toast({ title: "Cadastro realizado com sucesso!", description: "Você será redirecionado para completar seu perfil." });
     } catch (error: any) {
       handleAuthError(error, 'cadastro');
@@ -126,17 +105,13 @@ export function AuthForm({ auth }: AuthFormProps) {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !db) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Serviços de autenticação não estão prontos.' });
-        return;
-    };
     setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      // Profile creation for Google Sign-In is handled by the AuthProvider's onSnapshot listener
+      // Profile creation for Google Sign-In is handled by the AuthProvider's onAuthStateChanged listener
       toast({ title: "Login com Google bem-sucedido!" });
-    } catch (error: any) {
+    } catch (error: any) => {
       handleAuthError(error, 'login com Google');
     } finally {
       setLoadingGoogle(false);

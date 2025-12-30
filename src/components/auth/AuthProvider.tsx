@@ -29,7 +29,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const initAuth = async () => {
-      setLoading(true);
       try {
         const services = await initializeFirebaseClient();
         if (services) {
@@ -43,8 +42,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 if (docSnap.exists()) {
                   setUserProfile(docSnap.data() as UserProfile);
                 } else {
-                  // This case should ideally not happen often if profile is created on signup
-                  // But it's a good fallback.
                   const newUserProfile: UserProfile = {
                     uid: user.uid,
                     email: user.email,
@@ -54,7 +51,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                   };
                    setDoc(userRef, newUserProfile)
                     .then(() => setUserProfile(newUserProfile))
-                    .catch((error) => console.error("Error creating fallback user profile:", error));
+                    .catch((error) => {
+                        console.error("Error creating user profile:", error);
+                        toast({
+                          variant: 'destructive',
+                          title: 'Erro ao criar perfil',
+                          description: `Ocorreu um erro: ${error.message}`
+                        });
+                    });
                 }
                  setLoading(false);
               }, (error) => {
@@ -62,7 +66,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 toast({
                   variant: 'destructive',
                   title: 'Erro de Sincronização',
-                  description: 'Não foi possível sincronizar seu perfil.'
+                  description: `Não foi possível sincronizar seu perfil: ${error.message}`
                 });
                 setLoading(false);
               });
@@ -77,14 +81,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         } else {
           throw new Error('Firebase services could not be initialized.');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Firebase initialization failed:", error);
         toast({
           variant: 'destructive',
           title: 'Erro Crítico de Inicialização',
-          description: 'Não foi possível conectar aos serviços principais. A aplicação não pode continuar.',
+          description: error.message || 'Não foi possível conectar aos serviços. Tente recarregar a página.',
         });
-        setLoading(false); // Stop loading on critical error
+        setLoading(false);
       }
     };
     
@@ -99,7 +103,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       db: firebaseServices.db,
     } : undefined), [user, userProfile, loading, firebaseServices]);
 
-  if (!value) {
+  // We must wait for firebaseServices to be initialized before rendering children.
+  if (loading || !value) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
