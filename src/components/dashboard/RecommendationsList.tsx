@@ -1,13 +1,13 @@
 'use client';
 
-import type { PartnershipRecommendation } from '@/lib/types';
+import type { Company } from '@/lib/types';
 import { RecommendationCard } from './RecommendationCard';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface RecommendationsListProps {
-  recommendations: PartnershipRecommendation[];
+  recommendations: Company[];
   isLoading: boolean;
-  onExplain: (recommendation: PartnershipRecommendation) => void;
+  onExplain: (recommendation: Company) => void;
 }
 
 function RecommendationSkeleton() {
@@ -51,7 +51,7 @@ export function RecommendationsList({ recommendations, isLoading, onExplain }: R
     return (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">
             <h3 className="text-lg font-semibold text-muted-foreground">Nenhuma recomendação encontrada</h3>
-            <p className="text-sm text-muted-foreground mt-1">Ajuste seus critérios de busca e tente novamente.</p>
+            <p className="text-sm text-muted-foreground mt-1">Nossa IA não encontrou parceiros compatíveis no momento. Tente novamente mais tarde.</p>
         </div>
     )
   }
@@ -59,7 +59,7 @@ export function RecommendationsList({ recommendations, isLoading, onExplain }: R
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {recommendations.map((rec, index) => (
-        <RecommendationCard key={rec.company.cnpj} recommendation={rec} onExplain={onExplain} index={index} />
+        <RecommendationCard key={rec.id} recommendation={rec} onExplain={onExplain} index={index} />
       ))}
     </div>
   );

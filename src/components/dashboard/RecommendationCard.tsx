@@ -1,6 +1,6 @@
 'use client';
 
-import type { PartnershipRecommendation } from '@/lib/types';
+import type { Company } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,8 @@ import { Building, MapPin, Sparkles } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface RecommendationCardProps {
-  recommendation: PartnershipRecommendation;
-  onExplain: (recommendation: PartnershipRecommendation) => void;
+  recommendation: Company;
+  onExplain: (recommendation: Company) => void;
   index: number;
 }
 
@@ -21,31 +21,35 @@ export function RecommendationCard({ recommendation, onExplain, index }: Recomme
     <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-start gap-4">
         <Avatar className="h-12 w-12">
-            {companyLogo && <AvatarImage src={companyLogo.imageUrl} alt={recommendation.company.nome_fantasia || recommendation.company.razao_social} data-ai-hint={companyLogo.imageHint} />}
+            {companyLogo && <AvatarImage src={companyLogo.imageUrl} alt={recommendation.nomeFantasia || recommendation.razaoSocial} data-ai-hint={companyLogo.imageHint} />}
           <AvatarFallback>
             <Building className="h-6 w-6" />
           </AvatarFallback>
         </Avatar>
         <div className='flex-1'>
-          <CardTitle className="font-headline text-lg">{recommendation.company.nome_fantasia || recommendation.company.razao_social}</CardTitle>
+          <CardTitle className="font-headline text-lg">{recommendation.nomeFantasia || recommendation.razaoSocial}</CardTitle>
           <CardDescription className='flex items-center gap-2 mt-1'>
             <MapPin className="h-4 w-4" />
-            {recommendation.company.municipio}, {recommendation.company.uf}
+            {recommendation.endereco.cidade}, {recommendation.endereco.uf}
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
         <div className="space-y-2">
             <h4 className='text-sm font-medium text-muted-foreground'>CNAE Principal</h4>
-            <p className='text-sm'>{recommendation.company.cnae_fiscal_descricao}</p>
+            <p className='text-sm'>{recommendation.cnaePrincipal.description}</p>
         </div>
         <div className="space-y-2">
-             <h4 className='text-sm font-medium text-muted-foreground'>Fatores Chave</h4>
-            <div className='flex flex-wrap gap-2'>
-                {recommendation.key_factors.map((factor, i) => (
-                    <Badge key={i} variant="secondary">{factor}</Badge>
-                ))}
-            </div>
+             <h4 className='text-sm font-medium text-muted-foreground'>Tags Operacionais</h4>
+            {recommendation.tagsOperacionais.length > 0 ? (
+                 <div className='flex flex-wrap gap-2'>
+                    {recommendation.tagsOperacionais.map((tag, i) => (
+                        <Badge key={i} variant="secondary">{tag}</Badge>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma tag informada.</p>
+            )}
         </div>
       </CardContent>
       <CardFooter>

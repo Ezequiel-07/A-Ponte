@@ -1,6 +1,6 @@
 'use client';
 
-import type { PartnershipRecommendation } from '@/lib/types';
+import type { Company } from '@/lib/types';
 import {
   Sheet,
   SheetContent,
@@ -14,7 +14,7 @@ import { ScrollArea } from '../ui/scroll-area';
 interface RationaleSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  recommendation: PartnershipRecommendation | null;
+  recommendation: Company | null;
   rationale: string | null;
   isLoading: boolean;
 }
@@ -36,7 +36,7 @@ export function RationaleSheet({
           </SheetTitle>
           <SheetDescription>
             Análise da sinergia entre sua empresa e{' '}
-            <strong>{recommendation?.company.nome_fantasia || recommendation?.company.razao_social}</strong>.
+            <strong>{recommendation?.nomeFantasia || recommendation?.razaoSocial}</strong>.
           </SheetDescription>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-12rem)] mt-4 pr-4">

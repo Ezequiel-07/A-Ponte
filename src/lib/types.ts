@@ -86,6 +86,7 @@ export type CompanyProfile = {
   razao_social: string;
   nome_fantasia: string;
   cnae_fiscal_descricao: string;
+  cnae_fiscal: number;
   uf: string;
   municipio: string;
   bairro: string;
@@ -105,7 +106,7 @@ export type CompanyProfile = {
  * Estrutura para uma recomendação de parceria (pode ser mock ou gerado pela IA).
  */
 export type PartnershipRecommendation = {
-  company: CompanyProfile;
+  company: Company;
   synergy_score: number;
   key_factors: string[];
 };
