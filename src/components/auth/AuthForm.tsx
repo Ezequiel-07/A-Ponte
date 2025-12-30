@@ -11,6 +11,7 @@ import {
   signInWithPopup,
   type Auth,
 } from "firebase/auth";
+import { doc, setDoc } from 'firebase/firestore';
 
 import { useToast } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { UserProfile } from '@/lib/types';
+import { db } from '@/lib/firebase/client';
+
 
 const formSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
@@ -50,13 +54,32 @@ export function AuthForm({ auth }: AuthFormProps) {
       password: "",
     },
   });
-
+  
   const handleAuthError = (error: any, context: string) => {
     console.error(`Error during ${context}:`, error);
+    let description = "Ocorreu um erro inesperado. Tente novamente.";
+    if (error.code) {
+        switch (error.code) {
+            case 'auth/wrong-password':
+                description = "Senha incorreta. Por favor, tente novamente.";
+                break;
+            case 'auth/user-not-found':
+                description = "Nenhuma conta encontrada com este email.";
+                break;
+            case 'auth/email-already-in-use':
+                description = "Este email já está em uso por outra conta.";
+                break;
+            case 'auth/invalid-credential':
+                 description = "Credenciais inválidas. Verifique seu email e senha.";
+                 break;
+            default:
+                description = `Erro: ${error.message}`;
+        }
+    }
     toast({
         variant: "destructive",
         title: `Erro no ${context}`,
-        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
+        description: description,
     });
   }
 
@@ -74,27 +97,47 @@ export function AuthForm({ auth }: AuthFormProps) {
   };
 
   const handleRegister = async (values: FormValues) => {
-    if (!auth) return;
+    if (!auth || !db) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Serviços de autenticação não estão prontos.' });
+        return;
+    }
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Create user profile document
+      const userRef = doc(db, 'users', user.uid);
+      const newUserProfile: UserProfile = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        subscriptionTier: 'free',
+      };
+      await setDoc(userRef, newUserProfile);
+
       toast({ title: "Cadastro realizado com sucesso!", description: "Você será redirecionado para completar seu perfil." });
     } catch (error: any) {
-      handleAuthError(error, 'register');
+      handleAuthError(error, 'cadastro');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return;
+    if (!auth || !db) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Serviços de autenticação não estão prontos.' });
+        return;
+    };
     setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      // Profile creation for Google Sign-In is handled by the AuthProvider's onSnapshot listener
       toast({ title: "Login com Google bem-sucedido!" });
     } catch (error: any) {
-      handleAuthError(error, 'google');
+      handleAuthError(error, 'login com Google');
     } finally {
       setLoadingGoogle(false);
     }

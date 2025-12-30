@@ -34,7 +34,7 @@ export default function AuthPage() {
             <Logo />
         </Link>
        </div>
-      <AuthForm auth={auth as Auth} />
+      <AuthForm auth={auth} />
     </div>
   );
 }
