@@ -1,6 +1,6 @@
 "use client";
 
-import { auth, db } from '@/lib/firebase/client';
+import { auth, db, initializeFirebaseClient } from '@/lib/firebase/client';
 import type { UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -22,63 +22,63 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
-      if (user) {
-        setUser(user);
-        const userRef = doc(db, 'users', user.uid);
+    // Adicionado para garantir que o firebase seja inicializado antes de usar o `auth`
+    initializeFirebaseClient().then(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        setLoading(true);
+        if (user) {
+            setUser(user);
+            const userRef = doc(db, 'users', user.uid);
 
-        // Set up the real-time listener for the user profile
-        const unsubProfile = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setUserProfile(docSnap.data() as UserProfile);
-            setLoading(false);
-          } else {
-            // If the document doesn't exist, it means this is a new user.
-            // We create the user profile document here.
-            const newUserProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              subscriptionTier: 'free',
-            };
-            setDoc(userRef, newUserProfile)
-              .then(() => {
-                setUserProfile(newUserProfile);
+            const unsubProfile = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setUserProfile(docSnap.data() as UserProfile);
                 setLoading(false);
-              })
-              .catch((error) => {
-                console.error("Error creating user profile:", error);
+            } else {
+                const newUserProfile: UserProfile = {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                subscriptionTier: 'free',
+                };
+                setDoc(userRef, newUserProfile)
+                .then(() => {
+                    setUserProfile(newUserProfile);
+                    setLoading(false);
+                })
+                .catch((error) => {
+                    console.error("Error creating user profile:", error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erro ao criar perfil',
+                        description: `Ocorreu um erro: ${error.message}`
+                    });
+                    setLoading(false);
+                });
+            }
+            }, (error) => {
+                console.error("Error listening to user profile:", error);
                 toast({
                     variant: 'destructive',
-                    title: 'Erro ao criar perfil',
-                    description: `Ocorreu um erro: ${error.message}`
+                    title: 'Erro de Sincronização',
+                    description: `Não foi possível sincronizar seu perfil: ${error.message}`
                 });
                 setLoading(false);
-              });
-          }
-        }, (error) => {
-            console.error("Error listening to user profile:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erro de Sincronização',
-                description: `Não foi possível sincronizar seu perfil: ${error.message}`
             });
+
+            return () => {
+            unsubProfile();
+            };
+        } else {
+            setUser(null);
+            setUserProfile(null);
             setLoading(false);
+        }
         });
 
-        return () => {
-          unsubProfile();
-        };
-      } else {
-        setUser(null);
-        setUserProfile(null);
-        setLoading(false);
-      }
+        return () => unsubscribe();
     });
-
-    return () => unsubscribe();
   }, []);
   
   const value = useMemo(() => ({ user, userProfile, loading }), [user, userProfile, loading]);
