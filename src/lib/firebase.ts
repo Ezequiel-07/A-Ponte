@@ -1,6 +1,10 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { config } from 'dotenv';
+
+// Carrega as variáveis de ambiente do arquivo .env.local
+config({ path: '.env.local' });
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
