@@ -18,6 +18,27 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Function to get the Firebase config from environment variables
+const getFirebaseConfig = (): FirebaseOptions | null => {
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+
+  // Check if all required environment variables are set
+  if (Object.values(firebaseConfig).some(value => !value)) {
+    console.error("Firebase config is missing or incomplete. Check your .env file.");
+    return null;
+  }
+
+  return firebaseConfig;
+};
+
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -26,21 +47,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
 
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = () => {
       try {
+        const firebaseConfig = getFirebaseConfig();
+        if (!firebaseConfig) {
+          throw new Error("Firebase configuration is missing. Please check your environment variables.");
+        }
+
         let app: FirebaseApp;
         if (getApps().length === 0) {
-            const response = await fetch('/api/firebase-config');
-            if (!response.ok) {
-                throw new Error(`Failed to fetch Firebase config: ${response.statusText}`);
-            }
-            const firebaseConfig: FirebaseOptions = await response.json();
-            
-            if (firebaseConfig && firebaseConfig.apiKey) {
-                app = initializeApp(firebaseConfig);
-            } else {
-                throw new Error("Firebase config is missing or invalid.");
-            }
+            app = initializeApp(firebaseConfig);
         } else {
             app = getApp();
         }
@@ -88,11 +104,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             })
             .catch((error) => {
                 console.error("Error getting redirect result:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Erro no Login com Google',
-                    description: error.message,
-                });
+                // Don't show toast for "no-redirect-operation"
+                if (error.code !== 'auth/no-redirect-operation') {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erro no Login com Google',
+                        description: error.message,
+                    });
+                }
             });
 
 
