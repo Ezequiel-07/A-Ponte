@@ -6,14 +6,18 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/auth');
+    if (!loading) {
+      if (!user) {
+        router.replace('/auth');
+      } else if (user && !userProfile?.companyId && window.location.pathname !== '/onboarding') {
+        router.replace('/onboarding');
+      }
     }
-  }, [user, loading, router]);
+  }, [user, userProfile, loading, router]);
 
   if (loading || !user) {
     return (

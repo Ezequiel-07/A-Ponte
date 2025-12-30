@@ -4,14 +4,17 @@ import { FieldValue } from 'firebase/firestore';
 
 export interface UserProfile {
   uid: string;
-  email: string;
-  companyId: string; // Referência ao ID da empresa que o usuário representa
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  companyId?: string; // Referência ao ID da empresa que o usuário representa
   subscriptionTier: 'free' | 'professional';
-  preferences: {
+  preferences?: {
     searchRadiusKm: number;
     businessMode: 'buy' | 'sell' | 'both'; // Modo de interesse principal
   };
   createdAt: FieldValue;
+  updatedAt: FieldValue;
 }
 
 // --- Dados das Empresas ---
@@ -38,13 +41,16 @@ export interface Company {
     cidade: string;
     uf: string;
     cep: string;
+    pais: string;
   };
   latitude: number;
   longitude: number;
   geohash: string; // Para queries geoespaciais eficientes
   tagsOperacionais: string[];
   fotos: string[]; // URLs das imagens
+  ownerId: string; // UID do usuário que criou a empresa
   createdAt: FieldValue;
+  updatedAt: FieldValue;
 }
 
 
@@ -82,6 +88,14 @@ export type CompanyProfile = {
   cnae_fiscal_descricao: string;
   uf: string;
   municipio: string;
+  bairro: string;
+  logradouro: string;
+  numero: string;
+  cep: string;
+  cnaes_secundarios: {
+    codigo: number;
+    descricao: string;
+  }[];
   ddd_telefone_1: string;
   descricao_porte: string;
   natureza_juridica: string;
