@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,6 @@ import { Loader2, Building, AlertCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useAuth } from '@/components/auth/AuthProvider';
-import AuthGuard from '@/components/auth/AuthGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -30,13 +29,19 @@ const onboardingSchema = z.object({
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
 export default function OnboardingPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && user && userProfile?.companyId) {
+        router.replace('/dashboard');
+    }
+  }, [user, userProfile, authLoading, router]);
 
   const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema),
@@ -60,7 +65,6 @@ export default function OnboardingPage() {
       const response = await axios.get(`https://brasilapi.com.br/api/cnpj/v1/${values.cnpj}`);
       const data: CompanyProfile = response.data;
       
-      // Basic data validation
       if (!data.logradouro || !data.municipio || !data.uf) {
         throw new Error('Endereço inválido retornado pela API.');
       }
@@ -83,7 +87,6 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-        // 1. Geocode Address
         const geo = await geocodeAddress({
             logradouro: companyData.logradouro,
             cidade: companyData.municipio,
@@ -97,7 +100,6 @@ export default function OnboardingPage() {
 
         const geohash = generateGeohash(geo.lat, geo.lon);
 
-        // 2. Prepare company document
         const companyId = uuidv4();
         const companyRef = doc(db, 'companies', companyId);
         
@@ -106,12 +108,13 @@ export default function OnboardingPage() {
             cnpj: companyData.cnpj,
             razaoSocial: companyData.razao_social,
             nomeFantasia: companyData.nome_fantasia,
+            phoneNumber: companyData.ddd_telefone_1,
             cnaePrincipal: {
                 code: companyData.cnae_fiscal.toString(),
                 description: companyData.cnae_fiscal_descricao,
             },
             cnaesSecundarios: companyData.cnaes_secundarios.map(c => ({code: c.codigo.toString(), description: c.descricao})),
-            bioInstitucional: '', // User can fill this later
+            bioInstitucional: '', 
             endereco: {
                 logradouro: companyData.logradouro,
                 numero: companyData.numero,
@@ -131,10 +134,8 @@ export default function OnboardingPage() {
             updatedAt: serverTimestamp(),
         };
 
-        // 3. Prepare user profile update
         const userRef = doc(db, 'users', user.uid);
 
-        // 4. Write batch
         const batch = writeBatch(db);
         batch.set(companyRef, newCompanyData);
         batch.update(userRef, { companyId: companyId, updatedAt: serverTimestamp() });
@@ -152,8 +153,15 @@ export default function OnboardingPage() {
     }
   }
 
+  if (authLoading || !user) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <AuthGuard>
       <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
         <div className="absolute top-8 left-8">
            <Logo />
@@ -217,6 +225,5 @@ export default function OnboardingPage() {
           </CardContent>
         </Card>
       </div>
-    </AuthGuard>
   );
 }

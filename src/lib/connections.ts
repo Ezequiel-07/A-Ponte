@@ -3,7 +3,7 @@
 import { collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import ngeohash from 'ngeohash';
 import { v4 as uuidv4 } from 'uuid';
-import { serverDb } from '@/lib/firebase/server';
+import { db } from '@/lib/firebase/client';
 import type { Company, Connection, Interaction, UserProfile } from './types';
 import { explainRecommendation } from '@/ai/flows';
 
@@ -57,7 +57,7 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     const searchRadiusKm = userProfile.preferences?.searchRadiusKm || 10;
     const limitResults = 5;
 
-    const interactionsQuery = query(collection(serverDb, 'interactions'), where('userId', '==', userId));
+    const interactionsQuery = query(collection(db, 'interactions'), where('userId', '==', userId));
     const interactionsSnap = await getDocs(interactionsQuery);
     const excludedCompanyIds = interactionsSnap.docs.map(doc => (doc.data() as Interaction).companyId);
     excludedCompanyIds.push(userCompany.id);
@@ -74,7 +74,7 @@ export async function findConnections(userId: string, userProfile: UserProfile, 
     const upper = ngeohash.encode(maxLat, maxLon);
 
     let companiesQuery = query(
-        collection(serverDb, 'companies'),
+        collection(db, 'companies'),
         where('geohash', '>=', lower),
         where('geohash', '<=', upper),
     );

@@ -24,6 +24,7 @@ export interface Company {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string;
+  phoneNumber?: string;
   cnaePrincipal: {
     code: string;
     description: string;

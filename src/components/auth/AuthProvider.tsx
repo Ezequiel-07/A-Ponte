@@ -4,7 +4,7 @@ import { auth, db } from '@/lib/firebase/client';
 import type { UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -33,6 +33,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             if (docSnap.exists()) {
                 const profileData = docSnap.data() as UserProfile;
                 setUserProfile(profileData);
+                 if (window.location.pathname === '/auth' || window.location.pathname === '/onboarding' ) {
+                    if (profileData.companyId) {
+                      router.replace('/dashboard');
+                    } else {
+                      router.replace('/onboarding');
+                    }
+                }
             } else {
                 // Create user profile if it doesn't exist
                 const newUserProfile: UserProfile = {
@@ -46,20 +53,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 };
                 await setDoc(userRef, newUserProfile);
                 setUserProfile(newUserProfile);
+                router.replace('/onboarding');
             }
             setLoading(false);
         });
 
         return () => {
             unsubProfile();
-            setLoading(false);
         };
       } else {
         setUser(null);
         setUserProfile(null);
         setLoading(false);
-        // No user, redirect to auth page if not already there
-        if (window.location.pathname !== '/auth') {
+        // No user, redirect to auth page if not already there and not on the landing page
+        if (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/onboarding')) {
           router.replace('/auth');
         }
       }

@@ -11,7 +11,7 @@ import { auth } from "@/lib/firebase/client";
 
 const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: Home },
-    { label: "Conexões", href: "/dashboard/connections", icon: LinkIcon },
+    { label: "Conexões", href: "/dashboard/connections", icon: Handshake },
     { label: "Perfil", href: "/dashboard/profile", icon: User },
 ];
 
