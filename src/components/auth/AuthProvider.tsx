@@ -6,6 +6,7 @@ import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { toast } from '@/components/ui/toaster';
 
 type AuthContextType = {
   user: User | null;
@@ -49,9 +50,22 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               })
               .catch((error) => {
                 console.error("Error creating user profile:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Erro ao criar perfil',
+                    description: `Ocorreu um erro: ${error.message}`
+                });
                 setLoading(false);
               });
           }
+        }, (error) => {
+            console.error("Error listening to user profile:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Erro de Sincronização',
+                description: `Não foi possível sincronizar seu perfil: ${error.message}`
+            });
+            setLoading(false);
         });
 
         return () => {
